@@ -14,9 +14,16 @@ const hasValidCredentials =
   supabaseAnonKey !== "your-anon-key" &&
   supabaseUrl.includes("supabase.co");
 
+console.log("Supabase credentials check:", {
+  supabaseUrl,
+  hasValidCredentials,
+  isMock: !hasValidCredentials,
+});
+
 let supabase: any = null;
 
 if (hasValidCredentials) {
+  console.log("Creating real Supabase client with valid credentials");
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
@@ -24,18 +31,25 @@ if (hasValidCredentials) {
       detectSessionInUrl: true,
     },
   });
+  console.log("Real Supabase client created successfully");
 } else {
   // Create a mock client for development when credentials are missing
+  console.log("Using mock Supabase client - credentials not configured");
   supabase = {
     auth: {
-      getUser: () =>
-        Promise.resolve({
+      getUser: () => {
+        console.log("Mock getUser called");
+        return Promise.resolve({
           data: { user: null },
           error: new Error("Supabase not configured"),
-        }),
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: () => {} } },
-      }),
+        });
+      },
+      onAuthStateChange: () => {
+        console.log("Mock onAuthStateChange called");
+        return {
+          data: { subscription: { unsubscribe: () => {} } },
+        };
+      },
       signInWithOAuth: () =>
         Promise.resolve({ error: new Error("Supabase not configured") }),
       signInWithPassword: () =>

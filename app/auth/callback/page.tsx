@@ -14,16 +14,16 @@ export default function AuthCallback() {
       if (error) {
         console.error("Error during auth callback:", error);
         router.push("/");
-        router.refresh();
         return;
       }
 
       if (data.session) {
-        router.push("/");
-        router.refresh();
+        console.log("Auth callback successful, redirecting to home");
+        // Force a hard refresh to ensure all state is updated
+        window.location.href = "/";
       } else {
+        console.log("No session found, redirecting to home");
         router.push("/");
-        router.refresh();
       }
     };
 

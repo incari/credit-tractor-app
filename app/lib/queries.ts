@@ -9,11 +9,47 @@ export function useUser() {
   return useQuery({
     queryKey: ["user"],
     queryFn: async () => {
+      console.log("useUser queryFn called");
+
+      // Check if we're using the mock Supabase client
+      const isMockClient =
+        !supabase.auth.getUser ||
+        supabase.auth.getUser.toString().includes("Mock getUser");
+      if (isMockClient) {
+        console.log(
+          "Mock Supabase client detected in useUser - returning null"
+        );
+        return null;
+      }
+
       const {
         data: { user },
+        error,
       } = await supabase.auth.getUser();
+
+      console.log("useUser query result:", { user: user?.email, error });
+
+      // Don't throw error for missing auth session - just return null
+      if (
+        error &&
+        (error.message.includes("Auth session missing") ||
+          error.message.includes("Not authenticated"))
+      ) {
+        console.log("Auth session missing - returning null");
+        return null;
+      }
+
+      if (error) {
+        console.error("useUser error:", error);
+        throw error;
+      }
+
+      console.log("useUser returning user:", user?.email);
       return user;
     },
+    retry: false, // Don't retry if auth fails
+    staleTime: 0, // Always consider data stale to ensure fresh checks
+    gcTime: 0, // Don't keep data in cache
   });
 }
 
@@ -22,10 +58,35 @@ export function usePayments() {
   return useQuery({
     queryKey: ["payments"],
     queryFn: async () => {
+      // Check if we're using the mock Supabase client
+      const isMockClient =
+        !supabase.auth.getUser ||
+        supabase.auth.getUser.toString().includes("Mock getUser");
+      if (isMockClient) {
+        console.log(
+          "Mock Supabase client detected in usePayments - returning empty array"
+        );
+        return [];
+      }
+
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      // Don't throw error for missing auth session - just return empty array
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        console.log("Auth session missing - returning empty payments");
+        return [];
+      }
+
       if (!user) throw new Error("Not authenticated");
+
+      console.log("Fetching payments for user:", user.email);
 
       const { data, error } = await supabase
         .from("creditTractor_payments")
@@ -33,7 +94,16 @@ export function usePayments() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching payments:", error);
+        throw error;
+      }
+
+      console.log(
+        "Payments fetched successfully:",
+        data?.length || 0,
+        "payments"
+      );
 
       return data.map((payment) => ({
         id: payment.id,
@@ -50,6 +120,8 @@ export function usePayments() {
         paidInstallments: payment.paid_installments || [],
       })) as Payment[];
     },
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -214,7 +286,19 @@ export function useCreditCards() {
     queryFn: async () => {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      // Don't throw error for missing auth session - just return empty array
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        console.log("Auth session missing - returning empty credit cards");
+        return [];
+      }
+
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
@@ -294,7 +378,24 @@ export function useUserSettings() {
     queryFn: async () => {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      // Don't throw error for missing auth session - just return defaults
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        console.log("Auth session missing - returning default settings");
+        return {
+          language: "EN" as const,
+          currency: "EUR",
+          lastUsedCard: null,
+          monthsToShow: 12,
+        };
+      }
+
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase

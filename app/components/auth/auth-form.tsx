@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail } from "lucide-react";
 import { supabase } from "@/app/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AuthForm() {
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export function AuthForm() {
     text: string;
   } | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -40,6 +42,9 @@ export function AuthForm() {
       });
 
       if (error) throw error;
+
+      // Invalidate queries to ensure fresh data after redirect
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
@@ -79,10 +84,12 @@ export function AuthForm() {
         });
 
         if (error) throw error;
-        // Redirect to homepage after successful sign in
-        console.log("User signed in successfully");
-        router.push("/");
-        router.refresh();
+
+        // Invalidate and refetch user data
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+
+        // Use window.location for a more reliable redirect
+        window.location.href = "/";
       }
     } catch (error: unknown) {
       const errorMessage =

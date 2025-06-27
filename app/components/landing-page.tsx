@@ -16,10 +16,12 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from "lucide-react";
 import { useUser } from "@/app/lib/queries";
 import { supabase } from "@/app/lib/supabase";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -29,9 +31,15 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const router = useRouter();
   const { data: user } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    // Clear all queries to ensure user state is cleared
+    queryClient.clear();
+    // Invalidate user query specifically to force re-fetch
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    // Force router refresh to update the page
     router.refresh();
   };
 
@@ -69,6 +77,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               >
                 Demo
               </a>
+              <Button
+                variant="outline"
+                onClick={() => router.push("/setup")}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Setup
+              </Button>
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-600">
@@ -135,6 +151,17 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 >
                   Demo
                 </a>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    router.push("/setup");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Setup
+                </Button>
                 {user ? (
                   <div className="flex flex-col space-y-2">
                     <span className="text-sm text-gray-600">

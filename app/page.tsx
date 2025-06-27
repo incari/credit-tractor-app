@@ -35,11 +35,13 @@ import {
   useUpdateUserSettings,
   useUser,
 } from "./lib/queries";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CreditTractor() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // React Query hooks
   const { data: user } = useUser();
@@ -52,6 +54,14 @@ export default function CreditTractor() {
   const addCreditCardMutation = useAddCreditCard();
   const updateUserSettingsMutation = useUpdateUserSettings();
 
+  // Debug logging
+  console.log("CreditTractor state:", {
+    user: user?.email,
+    paymentsLoading,
+    paymentsCount: payments.length,
+    activeTab,
+  });
+
   const currentUserSettings: UserSettings = {
     language: userSettings?.language || "EN",
     currency: userSettings?.currency || "EUR",
@@ -62,12 +72,20 @@ export default function CreditTractor() {
 
   // Show landing page if user is not authenticated
   if (!user) {
+    console.log("No user found, showing landing page");
     return <LandingPage onGetStarted={() => router.push("/login")} />;
   }
+
+  console.log("User authenticated, showing main app");
 
   // Show main app for authenticated users
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    // Clear all queries to ensure user state is cleared
+    queryClient.clear();
+    // Invalidate user query specifically to force re-fetch
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    // Force router refresh to update the page
     router.refresh();
   };
 
@@ -211,6 +229,7 @@ export default function CreditTractor() {
   const t = translations[currentUserSettings.language];
 
   if (paymentsLoading) {
+    console.log("Payments loading, showing loading screen");
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
         <div className="text-center space-y-4">
@@ -219,6 +238,7 @@ export default function CreditTractor() {
           </div>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto" />
           <p className="text-gray-600">Loading your data...</p>
+          <p className="text-xs text-gray-500">Loading payments...</p>
         </div>
       </div>
     );
