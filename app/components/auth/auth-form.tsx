@@ -1,24 +1,35 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Mail } from "lucide-react"
-import { supabase } from "@/app/lib/supabase"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Mail } from "lucide-react";
+import { supabase } from "@/app/lib/supabase";
 
 export function AuthForm() {
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const router = useRouter();
 
   const handleGoogleSignIn = async () => {
-    setLoading(true)
-    setMessage(null)
+    setLoading(true);
+    setMessage(null);
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -26,19 +37,25 @@ export function AuthForm() {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
+      });
 
-      if (error) throw error
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message })
+      if (error) throw error;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      setMessage({ type: "error", text: errorMessage });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleEmailAuth = async (email: string, password: string, isSignUp: boolean) => {
-    setLoading(true)
-    setMessage(null)
+  const handleEmailAuth = async (
+    email: string,
+    password: string,
+    isSignUp: boolean
+  ) => {
+    setLoading(true);
+    setMessage(null);
 
     try {
       if (isSignUp) {
@@ -48,43 +65,62 @@ export function AuthForm() {
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
-        })
+        });
 
-        if (error) throw error
+        if (error) throw error;
         setMessage({
           type: "success",
           text: "Check your email for the confirmation link!",
-        })
+        });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
-        })
+        });
 
-        if (error) throw error
+        if (error) throw error;
+        // Redirect to homepage after successful sign in
+        console.log("User signed in successfully");
+        router.push("/");
+        router.refresh();
       }
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message })
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      setMessage({ type: "error", text: errorMessage });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Credit Tractor</CardTitle>
-          <p className="text-lg font-medium text-primary">Payment Tracking Made Simple</p>
-          <CardDescription>Sign in to your account to start tracking your credit payments</CardDescription>
+          <p className="text-lg font-medium text-primary">
+            Payment Tracking Made Simple
+          </p>
+          <CardDescription>
+            Sign in to your account to start tracking your credit payments
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Button onClick={handleGoogleSignIn} disabled={loading} className="w-full bg-transparent" variant="outline">
+            <Button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full bg-transparent"
+              variant="outline"
+            >
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <svg
+                  className="mr-2 h-4 w-4"
+                  viewBox="0 0 24 24"
+                >
+                  <title>Google</title>
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -111,27 +147,44 @@ export function AuthForm() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
               </div>
             </div>
 
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs
+              defaultValue="signin"
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
-                <EmailForm onSubmit={(email, password) => handleEmailAuth(email, password, false)} loading={loading} />
+                <EmailForm
+                  onSubmit={(email, password) =>
+                    handleEmailAuth(email, password, false)
+                  }
+                  loading={loading}
+                />
               </TabsContent>
 
               <TabsContent value="signup">
-                <EmailForm onSubmit={(email, password) => handleEmailAuth(email, password, true)} loading={loading} />
+                <EmailForm
+                  onSubmit={(email, password) =>
+                    handleEmailAuth(email, password, true)
+                  }
+                  loading={loading}
+                />
               </TabsContent>
             </Tabs>
 
             {message && (
-              <Alert variant={message.type === "error" ? "destructive" : "default"}>
+              <Alert
+                variant={message.type === "error" ? "destructive" : "default"}
+              >
                 <Mail className="h-4 w-4" />
                 <AlertDescription>{message.text}</AlertDescription>
               </Alert>
@@ -140,26 +193,29 @@ export function AuthForm() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 function EmailForm({
   onSubmit,
   loading,
 }: {
-  onSubmit: (email: string, password: string) => void
-  loading: boolean
+  onSubmit: (email: string, password: string) => void;
+  loading: boolean;
 }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(email, password)
-  }
+    e.preventDefault();
+    onSubmit(email, password);
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+    >
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -182,10 +238,14 @@ function EmailForm({
           required
         />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={loading}
+      >
         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         Continue
       </Button>
     </form>
-  )
+  );
 }

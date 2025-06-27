@@ -1,15 +1,44 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CreditCard, TrendingUp, Shield, Globe, Smartphone, BarChart3, CheckCircle, Play } from "lucide-react"
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  CreditCard,
+  TrendingUp,
+  Shield,
+  Globe,
+  Smartphone,
+  BarChart3,
+  CheckCircle,
+  Play,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { useUser } from "@/app/lib/queries";
+import { supabase } from "@/app/lib/supabase";
+import { useState } from "react";
 
 interface LandingPageProps {
-  onGetStarted: () => void
+  onGetStarted: () => void;
 }
 
-const LandingPage = ({ onGetStarted }: LandingPageProps) => {
+export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
+  const router = useRouter();
+  const { data: user } = useUser();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.refresh();
+  };
+
+  const handleLogin = () => {
+    router.push("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       {/* Header */}
@@ -21,22 +50,132 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <CreditCard className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Credit Tractor</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Credit Tractor
+                </h1>
                 <p className="text-sm text-gray-600">Payment Tracking</p>
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#features"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Features
               </a>
-              <a href="#demo" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#demo"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Demo
               </a>
-              <Button onClick={onGetStarted} className="bg-green-500 hover:bg-green-600">
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    Welcome, {user.email}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={handleSignOut}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={handleLogin}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Login
+                </Button>
+              )}
+              <Button
+                onClick={onGetStarted}
+                className="bg-green-500 hover:bg-green-600"
+              >
                 Get Started
               </Button>
             </nav>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-gray-200">
+              <div className="flex flex-col space-y-4 pt-4">
+                <a
+                  href="#features"
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a
+                  href="#demo"
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Demo
+                </a>
+                {user ? (
+                  <div className="flex flex-col space-y-2">
+                    <span className="text-sm text-gray-600">
+                      Welcome, {user.email}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      handleLogin();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Login
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    onGetStarted();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  Get Started
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -46,16 +185,21 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                <Badge
+                  variant="outline"
+                  className="text-green-600 border-green-200 bg-green-50"
+                >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Payment Tracking Made Simple
                 </Badge>
                 <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                  Take Control of Your <span className="text-green-500">Credit Payments</span>
+                  Take Control of Your{" "}
+                  <span className="text-green-500">Credit Payments</span>
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Credit Tractor helps you track credit card payments, manage payment plans, and visualize your
-                  financial progress with powerful analytics and multi-currency support.
+                  Credit Tractor helps you track credit card payments, manage
+                  payment plans, and visualize your financial progress with
+                  powerful analytics and multi-currency support.
                 </p>
               </div>
 
@@ -96,7 +240,7 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
             {/* Dashboard Preview */}
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 rounded-3xl transform rotate-3 opacity-20"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 rounded-3xl transform rotate-3 opacity-20" />
               <Card className="relative bg-white shadow-2xl rounded-2xl overflow-hidden">
                 <div className="bg-green-500 p-4 text-white">
                   <div className="flex items-center justify-between">
@@ -106,7 +250,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                       </div>
                       <span className="font-semibold">Credit Tractor</span>
                     </div>
-                    <Badge className="bg-white/20 text-white border-white/30">Active</Badge>
+                    <Badge className="bg-white/20 text-white border-white/30">
+                      Active
+                    </Badge>
                   </div>
                 </div>
                 <CardContent className="p-6 space-y-6">
@@ -129,7 +275,10 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                       </div>
                       <div className="text-right">
                         <p className="font-bold">$245</p>
-                        <Badge variant="outline" className="text-green-600 border-green-200">
+                        <Badge
+                          variant="outline"
+                          className="text-green-600 border-green-200"
+                        >
                           On track
                         </Badge>
                       </div>
@@ -142,7 +291,10 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                       </div>
                       <div className="text-right">
                         <p className="font-bold">$180</p>
-                        <Badge variant="outline" className="text-green-600 border-green-200">
+                        <Badge
+                          variant="outline"
+                          className="text-green-600 border-green-200"
+                        >
                           On track
                         </Badge>
                       </div>
@@ -156,12 +308,18 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
+      <section
+        id="features"
+        className="py-20 bg-white"
+      >
         <div className="container mx-auto px-4">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">Powerful Features</h2>
+            <h2 className="text-4xl font-bold text-gray-900">
+              Powerful Features
+            </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to manage your credit card payments and stay on top of your finances.
+              Everything you need to manage your credit card payments and stay
+              on top of your finances.
             </p>
           </div>
 
@@ -172,7 +330,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Payment Tracking</h3>
               <p className="text-gray-600">
-                Track multiple credit cards and payment plans with detailed installment schedules and due dates.
+                Track multiple credit cards and payment plans with detailed
+                installment schedules and due dates.
               </p>
             </Card>
 
@@ -182,7 +341,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Visual Analytics</h3>
               <p className="text-gray-600">
-                Beautiful charts and graphs to visualize your payment timeline and financial progress.
+                Beautiful charts and graphs to visualize your payment timeline
+                and financial progress.
               </p>
             </Card>
 
@@ -192,7 +352,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Multi-Currency</h3>
               <p className="text-gray-600">
-                Support for 35+ currencies with automatic formatting and conversion capabilities.
+                Support for 35+ currencies with automatic formatting and
+                conversion capabilities.
               </p>
             </Card>
 
@@ -202,7 +363,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Mobile Ready</h3>
               <p className="text-gray-600">
-                Progressive Web App (PWA) that works seamlessly on all devices, online and offline.
+                Progressive Web App (PWA) that works seamlessly on all devices,
+                online and offline.
               </p>
             </Card>
 
@@ -212,7 +374,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Secure & Private</h3>
               <p className="text-gray-600">
-                Your financial data is encrypted and stored securely with industry-standard security practices.
+                Your financial data is encrypted and stored securely with
+                industry-standard security practices.
               </p>
             </Card>
 
@@ -222,7 +385,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Smart Insights</h3>
               <p className="text-gray-600">
-                Get intelligent insights about your spending patterns and payment optimization opportunities.
+                Get intelligent insights about your spending patterns and
+                payment optimization opportunities.
               </p>
             </Card>
           </div>
@@ -233,9 +397,12 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       <section className="py-20 bg-green-50">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-8">
-            <h2 className="text-4xl font-bold text-gray-900">Ready to Take Control of Your Credit Payments?</h2>
+            <h2 className="text-4xl font-bold text-gray-900">
+              Ready to Take Control of Your Credit Payments?
+            </h2>
             <p className="text-xl text-gray-600">
-              Join thousands of users who have simplified their financial management with Credit Tractor.
+              Join thousands of users who have simplified their financial
+              management with Credit Tractor.
             </p>
             <Button
               onClick={onGetStarted}
@@ -262,12 +429,15 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <p className="text-gray-400">Payment Tracking Made Simple</p>
               </div>
             </div>
-            <div className="text-gray-400">© 2024 Credit Tractor. Built with ❤️ for better financial tracking.</div>
+            <div className="text-gray-400">
+              © 2024 Credit Tractor. Built with ❤️ for better financial
+              tracking.
+            </div>
           </div>
         </div>
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default LandingPage
+export default LandingPage;

@@ -1,22 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Plus, LogOut, CreditCard } from "lucide-react"
-import { PaymentForm } from "./components/payment-form"
-import { PaymentDashboard } from "./components/payment-dashboard"
-import { PaymentTable } from "./components/payment-table"
-import { PaymentEdit } from "./components/payment-edit"
-import { Settings } from "./components/settings"
-import { LandingPage } from "./components/landing-page"
-import type { Payment, UserSettings, UndoAction } from "./types/payment"
-import { translations } from "./utils/translations"
-import { Footer } from "./components/footer"
-import { PWAInstall } from "./components/pwa-install"
-import { UndoSnackbar } from "./components/undo-snackbar"
-import { supabase } from "./lib/supabase"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Plus, LogOut, CreditCard } from "lucide-react";
+import { PaymentForm } from "./components/payment-form";
+import { PaymentDashboard } from "./components/payment-dashboard";
+import { PaymentTable } from "./components/payment-table";
+import { PaymentEdit } from "./components/payment-edit";
+import { Settings } from "./components/settings";
+import { LandingPage } from "./components/landing-page";
+import type { Payment, UserSettings, UndoAction } from "./types/payment";
+import { translations } from "./utils/translations";
+import { Footer } from "./components/footer";
+import { PWAInstall } from "./components/pwa-install";
+import { UndoSnackbar } from "./components/undo-snackbar";
+import { supabase } from "./lib/supabase";
 import {
   usePayments,
   useAddPayment,
@@ -27,23 +34,23 @@ import {
   useUserSettings,
   useUpdateUserSettings,
   useUser,
-} from "./lib/queries"
+} from "./lib/queries";
 
 export default function CreditTractor() {
-  const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [showLanding, setShowLanding] = useState(true)
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const router = useRouter();
 
   // React Query hooks
-  const { data: user } = useUser()
-  const { data: payments = [], isLoading: paymentsLoading } = usePayments()
-  const { data: creditCards = [] } = useCreditCards()
-  const { data: userSettings } = useUserSettings()
-  const addPaymentMutation = useAddPayment()
-  const updatePaymentMutation = useUpdatePayment()
-  const deletePaymentMutation = useDeletePayment()
-  const addCreditCardMutation = useAddCreditCard()
-  const updateUserSettingsMutation = useUpdateUserSettings()
+  const { data: user } = useUser();
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments();
+  const { data: creditCards = [] } = useCreditCards();
+  const { data: userSettings } = useUserSettings();
+  const addPaymentMutation = useAddPayment();
+  const updatePaymentMutation = useUpdatePayment();
+  const deletePaymentMutation = useDeletePayment();
+  const addCreditCardMutation = useAddCreditCard();
+  const updateUserSettingsMutation = useUpdateUserSettings();
 
   const currentUserSettings: UserSettings = {
     language: userSettings?.language || "EN",
@@ -51,33 +58,35 @@ export default function CreditTractor() {
     creditCards: creditCards,
     lastUsedCard: userSettings?.lastUsedCard || undefined,
     monthsToShow: userSettings?.monthsToShow || 12,
-  }
+  };
 
   // Show landing page if user is not authenticated
   if (!user) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />
+    return <LandingPage onGetStarted={() => router.push("/login")} />;
   }
 
+  // Show main app for authenticated users
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-  }
+    await supabase.auth.signOut();
+    router.refresh();
+  };
 
   const addPayment = async (payment: Omit<Payment, "id">) => {
     try {
-      await addPaymentMutation.mutateAsync(payment)
+      await addPaymentMutation.mutateAsync(payment);
 
       // Update last used card
       await updateUserSettingsMutation.mutateAsync({
         ...currentUserSettings,
         lastUsedCard: payment.creditCard,
-      })
+      });
 
       // Add credit card if not already present
       if (!creditCards.some((card) => card.lastFour === payment.creditCard)) {
         await addCreditCardMutation.mutateAsync({
           lastFour: payment.creditCard,
           name: `Card ending in ${payment.creditCard}`,
-        })
+        });
       }
 
       setUndoAction({
@@ -86,15 +95,15 @@ export default function CreditTractor() {
         message: `Payment plan "${payment.name}" added successfully`,
         data: { payment },
         timestamp: Date.now(),
-      })
+      });
     } catch (error) {
-      console.error("Error adding payment:", error)
+      console.error("Error adding payment:", error);
     }
-  }
+  };
 
   const updatePayment = async (updatedPayment: Payment) => {
     try {
-      await updatePaymentMutation.mutateAsync(updatedPayment)
+      await updatePaymentMutation.mutateAsync(updatedPayment);
 
       setUndoAction({
         id: Date.now().toString(),
@@ -102,17 +111,17 @@ export default function CreditTractor() {
         message: `Payment plan "${updatedPayment.name}" updated successfully`,
         data: { updatedPayment },
         timestamp: Date.now(),
-      })
+      });
     } catch (error) {
-      console.error("Error updating payment:", error)
+      console.error("Error updating payment:", error);
     }
-  }
+  };
 
   const deletePayment = async (id: string) => {
-    const deletedPayment = payments.find((p) => p.id === id)
+    const deletedPayment = payments.find((p) => p.id === id);
 
     try {
-      await deletePaymentMutation.mutateAsync(id)
+      await deletePaymentMutation.mutateAsync(id);
 
       if (deletedPayment) {
         setUndoAction({
@@ -121,27 +130,30 @@ export default function CreditTractor() {
           message: `Payment plan "${deletedPayment.name}" deleted successfully`,
           data: { deletedPayment },
           timestamp: Date.now(),
-        })
+        });
       }
     } catch (error) {
-      console.error("Error deleting payment:", error)
+      console.error("Error deleting payment:", error);
     }
-  }
+  };
 
-  const markPaymentAsPaid = async (paymentId: string, installmentIndex: number) => {
-    const payment = payments.find((p) => p.id === paymentId)
-    if (!payment) return
+  const markPaymentAsPaid = async (
+    paymentId: string,
+    installmentIndex: number
+  ) => {
+    const payment = payments.find((p) => p.id === paymentId);
+    if (!payment) return;
 
-    const newPaidInstallments = [...(payment.paidInstallments || [])]
+    const newPaidInstallments = [...(payment.paidInstallments || [])];
     if (!newPaidInstallments.includes(installmentIndex)) {
-      newPaidInstallments.push(installmentIndex)
+      newPaidInstallments.push(installmentIndex);
     }
 
     try {
       await updatePaymentMutation.mutateAsync({
         ...payment,
         paidInstallments: newPaidInstallments,
-      })
+      });
 
       setUndoAction({
         id: Date.now().toString(),
@@ -149,23 +161,28 @@ export default function CreditTractor() {
         message: "Payment marked as paid",
         data: { paymentId, installmentIndex },
         timestamp: Date.now(),
-      })
+      });
     } catch (error) {
-      console.error("Error marking payment as paid:", error)
+      console.error("Error marking payment as paid:", error);
     }
-  }
+  };
 
-  const markPaymentAsUnpaid = async (paymentId: string, installmentIndex: number) => {
-    const payment = payments.find((p) => p.id === paymentId)
-    if (!payment) return
+  const markPaymentAsUnpaid = async (
+    paymentId: string,
+    installmentIndex: number
+  ) => {
+    const payment = payments.find((p) => p.id === paymentId);
+    if (!payment) return;
 
-    const newPaidInstallments = (payment.paidInstallments || []).filter((index) => index !== installmentIndex)
+    const newPaidInstallments = (payment.paidInstallments || []).filter(
+      (index) => index !== installmentIndex
+    );
 
     try {
       await updatePaymentMutation.mutateAsync({
         ...payment,
         paidInstallments: newPaidInstallments,
-      })
+      });
 
       setUndoAction({
         id: Date.now().toString(),
@@ -173,25 +190,25 @@ export default function CreditTractor() {
         message: "Payment marked as unpaid",
         data: { paymentId, installmentIndex },
         timestamp: Date.now(),
-      })
+      });
     } catch (error) {
-      console.error("Error marking payment as unpaid:", error)
+      console.error("Error marking payment as unpaid:", error);
     }
-  }
+  };
 
   const handleUndo = () => {
-    setUndoAction(null)
-  }
+    setUndoAction(null);
+  };
 
   const updateSettings = async (newSettings: UserSettings) => {
     try {
-      await updateUserSettingsMutation.mutateAsync(newSettings)
+      await updateUserSettingsMutation.mutateAsync(newSettings);
     } catch (error) {
-      console.error("Error updating settings:", error)
+      console.error("Error updating settings:", error);
     }
-  }
+  };
 
-  const t = translations[currentUserSettings.language]
+  const t = translations[currentUserSettings.language];
 
   if (paymentsLoading) {
     return (
@@ -200,11 +217,11 @@ export default function CreditTractor() {
           <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mx-auto animate-pulse">
             <CreditCard className="h-6 w-6 text-white" />
           </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto" />
           <p className="text-gray-600">Loading your data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (activeTab === "add-payment") {
@@ -218,42 +235,60 @@ export default function CreditTractor() {
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Credit Tractor</h1>
-                  <p className="text-lg font-medium text-green-600">Payment Tracking Made Simple</p>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Credit Tractor
+                  </h1>
+                  <p className="text-lg font-medium text-green-600">
+                    Payment Tracking Made Simple
+                  </p>
                 </div>
               </div>
               <p className="text-gray-600">{t.addNewPayment}</p>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 hidden md:block">
+                Welcome, {user.email}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
 
           <Card className="max-w-4xl mx-auto">
             <CardHeader>
               <CardTitle className="text-center">{t.addNewPayment}</CardTitle>
-              <CardDescription className="text-center">{t.addNewPaymentDesc}</CardDescription>
+              <CardDescription className="text-center">
+                {t.addNewPaymentDesc}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <PaymentForm
                 onSubmit={(payment) => {
-                  addPayment(payment)
-                  setActiveTab("dashboard")
+                  addPayment(payment);
+                  setActiveTab("dashboard");
                 }}
                 userSettings={currentUserSettings}
                 onAddCard={(card) => {
-                  addCreditCardMutation.mutate(card)
+                  addCreditCardMutation.mutate(card);
                 }}
               />
-              <Button variant="outline" onClick={() => setActiveTab("dashboard")} className="w-full mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab("dashboard")}
+                className="w-full mt-4"
+              >
                 {t.close}
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -266,25 +301,46 @@ export default function CreditTractor() {
                 <CreditCard className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Credit Tractor</h1>
-                <p className="text-lg font-medium text-green-600">Payment Tracking Made Simple</p>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Credit Tractor
+                </h1>
+                <p className="text-lg font-medium text-green-600">
+                  Payment Tracking Made Simple
+                </p>
               </div>
             </div>
-            <p className="text-gray-600">Track your credit card payments and manage payment plans</p>
+            <p className="text-gray-600">
+              Track your credit card payments and manage payment plans
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setActiveTab("add-payment")} className="bg-green-500 hover:bg-green-600">
-              <Plus className="h-4 w-4 mr-2" />
-              {t.addPayment}
-            </Button>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 hidden md:block">
+                Welcome, {user.email}
+              </span>
+              <Button
+                onClick={() => setActiveTab("add-payment")}
+                className="bg-green-500 hover:bg-green-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t.addPayment}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2 gap-1 h-auto p-1 md:grid-cols-4 md:gap-0 md:h-10 md:p-1 bg-white border">
             <TabsTrigger
               value="dashboard"
@@ -312,7 +368,10 @@ export default function CreditTractor() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-4">
+          <TabsContent
+            value="dashboard"
+            className="space-y-4"
+          >
             <PaymentDashboard
               payments={payments}
               userSettings={currentUserSettings}
@@ -322,7 +381,10 @@ export default function CreditTractor() {
             />
           </TabsContent>
 
-          <TabsContent value="edit" className="space-y-4">
+          <TabsContent
+            value="edit"
+            className="space-y-4"
+          >
             <PaymentEdit
               payments={payments}
               userSettings={currentUserSettings}
@@ -333,7 +395,10 @@ export default function CreditTractor() {
             />
           </TabsContent>
 
-          <TabsContent value="table" className="space-y-4">
+          <TabsContent
+            value="table"
+            className="space-y-4"
+          >
             <PaymentTable
               payments={payments}
               userSettings={currentUserSettings}
@@ -343,7 +408,10 @@ export default function CreditTractor() {
             />
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-4">
+          <TabsContent
+            value="settings"
+            className="space-y-4"
+          >
             <Settings
               userSettings={currentUserSettings}
               onUpdateSettings={updateSettings}
@@ -355,8 +423,12 @@ export default function CreditTractor() {
 
         <Footer />
         <PWAInstall />
-        <UndoSnackbar action={undoAction} onUndo={handleUndo} onDismiss={() => setUndoAction(null)} />
+        <UndoSnackbar
+          action={undoAction}
+          onUndo={handleUndo}
+          onDismiss={() => setUndoAction(null)}
+        />
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { supabase } from "./supabase"
-import type { Payment, CreditCard, UserSettings } from "../types/payment"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "./supabase";
+import type { Payment, CreditCard, UserSettings } from "../types/payment";
 
 // Auth queries
 export function useUser() {
@@ -11,10 +11,10 @@ export function useUser() {
     queryFn: async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      return user
+      } = await supabase.auth.getUser();
+      return user;
     },
-  })
+  });
 }
 
 // Payment queries
@@ -24,16 +24,16 @@ export function usePayments() {
     queryFn: async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_payments")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
-      if (error) throw error
+      if (error) throw error;
 
       return data.map((payment) => ({
         id: payment.id,
@@ -48,20 +48,20 @@ export function usePayments() {
         customDayOfMonth: payment.custom_day_of_month,
         currency: payment.currency,
         paidInstallments: payment.paid_installments || [],
-      })) as Payment[]
+      })) as Payment[];
     },
-  })
+  });
 }
 
 export function useAddPayment() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payment: Omit<Payment, "id">) => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_payments")
@@ -80,44 +80,46 @@ export function useAddPayment() {
           paid_installments: payment.paidInstallments || [],
         })
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     },
     onMutate: async (newPayment) => {
-      await queryClient.cancelQueries({ queryKey: ["payments"] })
-      const previousPayments = queryClient.getQueryData<Payment[]>(["payments"])
+      await queryClient.cancelQueries({ queryKey: ["payments"] });
+      const previousPayments = queryClient.getQueryData<Payment[]>([
+        "payments",
+      ]);
 
       const optimisticPayment: Payment = {
         ...newPayment,
         id: `temp-${Date.now()}`,
-      }
+      };
 
       queryClient.setQueryData<Payment[]>(["payments"], (old) =>
-        old ? [optimisticPayment, ...old] : [optimisticPayment],
-      )
+        old ? [optimisticPayment, ...old] : [optimisticPayment]
+      );
 
-      return { previousPayments }
+      return { previousPayments };
     },
     onError: (err, newPayment, context) => {
-      queryClient.setQueryData(["payments"], context?.previousPayments)
+      queryClient.setQueryData(["payments"], context?.previousPayments);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
-  })
+  });
 }
 
 export function useUpdatePayment() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payment: Payment) => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_payments")
@@ -138,63 +140,71 @@ export function useUpdatePayment() {
         .eq("id", payment.id)
         .eq("user_id", user.id)
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     },
     onMutate: async (updatedPayment) => {
-      await queryClient.cancelQueries({ queryKey: ["payments"] })
-      const previousPayments = queryClient.getQueryData<Payment[]>(["payments"])
+      await queryClient.cancelQueries({ queryKey: ["payments"] });
+      const previousPayments = queryClient.getQueryData<Payment[]>([
+        "payments",
+      ]);
 
       queryClient.setQueryData<Payment[]>(["payments"], (old) =>
-        old ? old.map((p) => (p.id === updatedPayment.id ? updatedPayment : p)) : [],
-      )
+        old
+          ? old.map((p) => (p.id === updatedPayment.id ? updatedPayment : p))
+          : []
+      );
 
-      return { previousPayments }
+      return { previousPayments };
     },
     onError: (err, updatedPayment, context) => {
-      queryClient.setQueryData(["payments"], context?.previousPayments)
+      queryClient.setQueryData(["payments"], context?.previousPayments);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
-  })
+  });
 }
 
 export function useDeletePayment() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (paymentId: string) => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
         .from("creditTractor_payments")
         .delete()
         .eq("id", paymentId)
-        .eq("user_id", user.id)
+        .eq("user_id", user.id);
 
-      if (error) throw error
+      if (error) throw error;
     },
     onMutate: async (paymentId) => {
-      await queryClient.cancelQueries({ queryKey: ["payments"] })
-      const previousPayments = queryClient.getQueryData<Payment[]>(["payments"])
+      await queryClient.cancelQueries({ queryKey: ["payments"] });
+      const previousPayments = queryClient.getQueryData<Payment[]>([
+        "payments",
+      ]);
 
-      queryClient.setQueryData<Payment[]>(["payments"], (old) => (old ? old.filter((p) => p.id !== paymentId) : []))
+      queryClient.setQueryData<Payment[]>(["payments"], (old) =>
+        old ? old.filter((p) => p.id !== paymentId) : []
+      );
 
-      return { previousPayments }
+      return { previousPayments };
     },
     onError: (err, paymentId, context) => {
-      queryClient.setQueryData(["payments"], context?.previousPayments)
+      queryClient.setQueryData(["payments"], context?.previousPayments);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
-  })
+  });
 }
 
 // Credit Cards queries
@@ -204,16 +214,16 @@ export function useCreditCards() {
     queryFn: async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_credit_cards")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
-      if (error) throw error
+      if (error) throw error;
 
       return data.map((card) => ({
         id: card.id,
@@ -221,20 +231,20 @@ export function useCreditCards() {
         lastFour: card.last_four,
         limit: card.limit,
         yearlyFee: card.yearly_fee,
-      })) as CreditCard[]
+      })) as CreditCard[];
     },
-  })
+  });
 }
 
 export function useAddCreditCard() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (card: Omit<CreditCard, "id">) => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_credit_cards")
@@ -246,33 +256,35 @@ export function useAddCreditCard() {
           yearly_fee: card.yearlyFee,
         })
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     },
     onMutate: async (newCard) => {
-      await queryClient.cancelQueries({ queryKey: ["credit-cards"] })
-      const previousCards = queryClient.getQueryData<CreditCard[]>(["credit-cards"])
+      await queryClient.cancelQueries({ queryKey: ["credit-cards"] });
+      const previousCards = queryClient.getQueryData<CreditCard[]>([
+        "credit-cards",
+      ]);
 
       const optimisticCard: CreditCard = {
         ...newCard,
         id: `temp-${Date.now()}`,
-      }
+      };
 
       queryClient.setQueryData<CreditCard[]>(["credit-cards"], (old) =>
-        old ? [optimisticCard, ...old] : [optimisticCard],
-      )
+        old ? [optimisticCard, ...old] : [optimisticCard]
+      );
 
-      return { previousCards }
+      return { previousCards };
     },
     onError: (err, newCard, context) => {
-      queryClient.setQueryData(["credit-cards"], context?.previousCards)
+      queryClient.setQueryData(["credit-cards"], context?.previousCards);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["credit-cards"] })
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
     },
-  })
+  });
 }
 
 // User Settings queries
@@ -282,14 +294,14 @@ export function useUserSettings() {
     queryFn: async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_user_settings")
         .select("*")
         .eq("user_id", user.id)
-        .single()
+        .single();
 
       if (error) {
         // If no settings exist, return defaults
@@ -299,9 +311,9 @@ export function useUserSettings() {
             currency: "EUR",
             lastUsedCard: null,
             monthsToShow: 12,
-          }
+          };
         }
-        throw error
+        throw error;
       }
 
       return {
@@ -309,20 +321,20 @@ export function useUserSettings() {
         currency: data.currency,
         lastUsedCard: data.last_used_card,
         monthsToShow: data.months_to_show,
-      }
+      };
     },
-  })
+  });
 }
 
 export function useUpdateUserSettings() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (settings: Partial<UserSettings>) => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("creditTractor_user_settings")
@@ -335,27 +347,27 @@ export function useUpdateUserSettings() {
           updated_at: new Date().toISOString(),
         })
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     },
     onMutate: async (newSettings) => {
-      await queryClient.cancelQueries({ queryKey: ["user-settings"] })
-      const previousSettings = queryClient.getQueryData(["user-settings"])
+      await queryClient.cancelQueries({ queryKey: ["user-settings"] });
+      const previousSettings = queryClient.getQueryData(["user-settings"]);
 
       queryClient.setQueryData(["user-settings"], (old: any) => ({
         ...old,
         ...newSettings,
-      }))
+      }));
 
-      return { previousSettings }
+      return { previousSettings };
     },
     onError: (err, newSettings, context) => {
-      queryClient.setQueryData(["user-settings"], context?.previousSettings)
+      queryClient.setQueryData(["user-settings"], context?.previousSettings);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-settings"] })
+      queryClient.invalidateQueries({ queryKey: ["user-settings"] });
     },
-  })
+  });
 }
