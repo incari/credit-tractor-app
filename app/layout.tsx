@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppWrapper } from "./components/app-wrapper";
+import AppShell from "./components/app-shell";
+import Navbar from "@/components/landing/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,7 +47,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <AppWrapper>{children}</AppWrapper>
+        <AppWrapper>
+          <Navbar />
+          <div className="pt-20">{children}</div>
+          {/* <AppShell>{children}</AppShell> */}
+        </AppWrapper>
       </body>
     </html>
   );

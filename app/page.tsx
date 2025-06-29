@@ -11,19 +11,19 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, CreditCard } from "lucide-react";
+import { Plus, CreditCard } from "lucide-react";
 import { PaymentForm } from "./components/payment-form";
 import { PaymentDashboard } from "./components/payment-dashboard";
 import { PaymentTable } from "./components/payment-table";
 import { PaymentEdit } from "./components/payment-edit";
 import { Settings } from "./components/settings";
 import { LandingPage } from "./components/landing-page";
+
 import type { Payment, UserSettings, UndoAction } from "./types/payment";
 import { translations } from "./utils/translations";
 import { Footer } from "./components/footer";
 import { PWAInstall } from "./components/pwa-install";
 import { UndoSnackbar } from "./components/undo-snackbar";
-import { supabase } from "./lib/supabase";
 import {
   usePayments,
   useAddPayment,
@@ -35,16 +35,15 @@ import {
   useUpdateUserSettings,
   useUser,
 } from "./lib/queries";
-import { useQueryClient } from "@tanstack/react-query";
+import { LoadingScreen } from "./components/loading-screen";
 
 export default function CreditTractor() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   // React Query hooks
-  const { data: user } = useUser();
+  const { data: user, isLoading: userLoading } = useUser();
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   const { data: creditCards = [] } = useCreditCards();
   const { data: userSettings } = useUserSettings();
@@ -57,6 +56,7 @@ export default function CreditTractor() {
   // Debug logging
   console.log("CreditTractor state:", {
     user: user?.email,
+    userLoading,
     paymentsLoading,
     paymentsCount: payments.length,
     activeTab,
@@ -70,6 +70,17 @@ export default function CreditTractor() {
     monthsToShow: userSettings?.monthsToShow || 12,
   };
 
+  // Show loading screen while checking authentication
+  if (userLoading) {
+    console.log("User loading, showing loading screen");
+    return (
+      <LoadingScreen
+        message="Checking authentication..."
+        subMessage="Please wait while we verify your login"
+      />
+    );
+  }
+
   // Show landing page if user is not authenticated
   if (!user) {
     console.log("No user found, showing landing page");
@@ -77,17 +88,6 @@ export default function CreditTractor() {
   }
 
   console.log("User authenticated, showing main app");
-
-  // Show main app for authenticated users
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    // Clear all queries to ensure user state is cleared
-    queryClient.clear();
-    // Invalidate user query specifically to force re-fetch
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-    // Force router refresh to update the page
-    router.refresh();
-  };
 
   const addPayment = async (payment: Omit<Payment, "id">) => {
     try {
@@ -231,16 +231,10 @@ export default function CreditTractor() {
   if (paymentsLoading) {
     console.log("Payments loading, showing loading screen");
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mx-auto animate-pulse">
-            <CreditCard className="h-6 w-6 text-white" />
-          </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto" />
-          <p className="text-gray-600">Loading your data...</p>
-          <p className="text-xs text-gray-500">Loading payments...</p>
-        </div>
-      </div>
+      <LoadingScreen
+        message="Loading your data..."
+        subMessage="Loading payments..."
+      />
     );
   }
 
@@ -248,37 +242,6 @@ export default function CreditTractor() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
         <div className="container mx-auto p-4 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="text-center space-y-2 flex-1">
-              <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                  <CreditCard className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Credit Tractor
-                  </h1>
-                  <p className="text-lg font-medium text-green-600">
-                    Payment Tracking Made Simple
-                  </p>
-                </div>
-              </div>
-              <p className="text-gray-600">{t.addNewPayment}</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 hidden md:block">
-                Welcome, {user.email}
-              </span>
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-
           <Card className="max-w-4xl mx-auto">
             <CardHeader>
               <CardTitle className="text-center">{t.addNewPayment}</CardTitle>
@@ -314,48 +277,6 @@ export default function CreditTractor() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       <div className="container mx-auto p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="text-center space-y-2 flex-1">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Credit Tractor
-                </h1>
-                <p className="text-lg font-medium text-green-600">
-                  Payment Tracking Made Simple
-                </p>
-              </div>
-            </div>
-            <p className="text-gray-600">
-              Track your credit card payments and manage payment plans
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 hidden md:block">
-                Welcome, {user.email}
-              </span>
-              <Button
-                onClick={() => setActiveTab("add-payment")}
-                className="bg-green-500 hover:bg-green-600"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {t.addPayment}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}

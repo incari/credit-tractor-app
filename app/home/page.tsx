@@ -13,7 +13,7 @@ import Newsletter from "@/components/landing/Newsletter";
 import MadeByHumans from "@/components/landing/MadeByHumans";
 import Footer from "@/components/landing/Footer";
 
-const Index = () => {
+const Home = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -77,4 +77,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Home;
