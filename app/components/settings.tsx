@@ -32,6 +32,7 @@ interface SettingsProps {
   onUpdateSettings: (settings: UserSettings) => void;
   payments?: Payment[];
   onUpdatePayments?: (payments: Payment[]) => void;
+  creditCards?: CreditCard[];
 }
 
 export function Settings({
@@ -39,6 +40,7 @@ export function Settings({
   onUpdateSettings,
   payments = [],
   onUpdatePayments,
+  creditCards,
 }: SettingsProps) {
   const [newCard, setNewCard] = useState({
     name: "",
@@ -49,6 +51,9 @@ export function Settings({
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const t = translations[userSettings.language];
   const updateUserSettings = useUpdateUserSettings();
+
+  // Use the live credit card list if provided, otherwise fallback to userSettings.creditCards
+  const cards = creditCards ?? userSettings.creditCards;
 
   const handleLanguageChange = (language: UserSettings["language"]) => {
     updateUserSettings.mutate(
@@ -292,7 +297,7 @@ export function Settings({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
-            {userSettings.creditCards.map((card) => {
+            {cards.map((card) => {
               const usage = calculateCreditUsage(
                 payments,
                 card,
@@ -390,7 +395,7 @@ export function Settings({
               );
             })}
 
-            {userSettings.creditCards.length === 0 && (
+            {cards.length === 0 && (
               <div className="text-center py-4 text-muted-foreground">
                 No credit cards saved yet
               </div>

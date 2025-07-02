@@ -80,7 +80,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
 export function AppWrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent>{children}</AppContent>
+      {children}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

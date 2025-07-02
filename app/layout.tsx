@@ -1,10 +1,14 @@
-import type React from "react";
+import React, { useEffect } from "react";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppWrapper } from "./components/app-wrapper";
 import AppShell from "./components/app-shell";
 import Navbar from "@/components/landing/Navbar";
+import Link from "next/link";
+import { useUser } from "./lib/queries";
+import { useRouter, usePathname } from "next/navigation";
+import ClientNavShell from "./components/client-nav-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,9 +52,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <AppWrapper>
-          <Navbar />
-          <div className="pt-20">{children}</div>
-          {/* <AppShell>{children}</AppShell> */}
+          <ClientNavShell>{children}</ClientNavShell>
         </AppWrapper>
       </body>
     </html>

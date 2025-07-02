@@ -313,7 +313,7 @@ export function useCreditCards() {
         id: card.id,
         name: card.name,
         lastFour: card.last_four,
-        limit: card.limit,
+        limit: card.credit_limit,
         yearlyFee: card.yearly_fee,
       })) as CreditCard[];
     },

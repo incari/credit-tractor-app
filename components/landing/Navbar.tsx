@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/app/lib/queries";
 import { supabase } from "@/app/lib/supabase";
 import { Settings, LogOut } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: user } = useUser();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -97,6 +100,27 @@ const Navbar = () => {
               <span className="text-sm text-gray-600">
                 Welcome, {user.email}
               </span>
+              <Link
+                href="/settings"
+                passHref
+                legacyBehavior
+              >
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn(
+                    "border-gray-300 cursor-pointer",
+                    pathname.startsWith("/settings")
+                      ? "bg-green-500 text-white border-green-500 hover:bg-green-500 hover:text-white"
+                      : "text-gray-700 hover:bg-gray-50 "
+                  )}
+                >
+                  <span className="flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </span>
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 onClick={handleSignOut}
@@ -200,6 +224,27 @@ const Navbar = () => {
               <span className="text-sm text-gray-600">
                 Welcome, {user.email}
               </span>
+              <Link
+                href="/settings"
+                passHref
+                legacyBehavior
+              >
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn(
+                    "border-gray-300 cursor-pointer",
+                    pathname.startsWith("/settings")
+                      ? "bg-green-500 text-white border-green-500 hover:bg-green-500 hover:text-white"
+                      : "text-gray-700 hover:bg-gray-50 hover:bg-green-600"
+                  )}
+                >
+                  <span className="flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </span>
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 onClick={() => {
