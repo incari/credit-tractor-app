@@ -46,12 +46,10 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    // Clear all queries to ensure user state is cleared
+    // Optimistically clear user from cache
+    queryClient.setQueryData(["user"], null);
     queryClient.clear();
-    // Invalidate user query specifically to force re-fetch
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-    // Force router refresh to update the page
-    router.refresh();
+    router.push("/");
   };
 
   const handleLogin = () => {

@@ -19,8 +19,13 @@ export default function AuthCallback() {
 
       if (data.session) {
         console.log("Auth callback successful, redirecting to home");
-        // Force a hard refresh to ensure all state is updated
-        window.location.href = "/";
+        // Optimistically update user cache
+        const { user } = data.session;
+        if (user) {
+          // @ts-ignore
+          window.__REACT_QUERY_CLIENT__?.setQueryData(["user"], user);
+        }
+        router.push("/");
       } else {
         console.log("No session found, redirecting to home");
         router.push("/");

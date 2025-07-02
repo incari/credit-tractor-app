@@ -61,11 +61,12 @@ export function AuthForm() {
 
         if (error) throw error;
 
-        // Invalidate and refetch user data
-        await queryClient.invalidateQueries({ queryKey: ["user"] });
-
-        // Use window.location for a more reliable redirect
-        window.location.href = "/";
+        // Optimistically set user in cache and redirect
+        const {
+          data: { user: loggedInUser },
+        } = await supabase.auth.getUser();
+        queryClient.setQueryData(["user"], loggedInUser);
+        router.push("/");
       }
     } catch (error: unknown) {
       const errorMessage =

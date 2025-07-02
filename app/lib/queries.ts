@@ -105,7 +105,7 @@ export function usePayments() {
         "payments"
       );
 
-      return data.map((payment) => ({
+      return data.map((payment: any) => ({
         id: payment.id,
         name: payment.name,
         price: payment.price,
@@ -309,7 +309,7 @@ export function useCreditCards() {
 
       if (error) throw error;
 
-      return data.map((card) => ({
+      return data.map((card: any) => ({
         id: card.id,
         name: card.name,
         lastFour: card.last_four,
@@ -439,14 +439,17 @@ export function useUpdateUserSettings() {
 
       const { data, error } = await supabase
         .from("creditTractor_user_settings")
-        .upsert({
-          user_id: user.id,
-          language: settings.language,
-          currency: settings.currency,
-          last_used_card: settings.lastUsedCard,
-          months_to_show: settings.monthsToShow,
-          updated_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            language: settings.language,
+            currency: settings.currency,
+            last_used_card: settings.lastUsedCard,
+            months_to_show: settings.monthsToShow,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        )
         .select()
         .single();
 
@@ -467,8 +470,11 @@ export function useUpdateUserSettings() {
     onError: (err, newSettings, context) => {
       queryClient.setQueryData(["user-settings"], context?.previousSettings);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-settings"] });
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(["user-settings"], (old: any) => ({
+        ...old,
+        ...variables,
+      }));
     },
   });
 }
