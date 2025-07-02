@@ -11,6 +11,10 @@ import {
 import { UndoSnackbar } from "../components/undo-snackbar";
 import { LoadingScreen } from "../components/loading-screen";
 import type { UndoAction, UserSettings, Payment } from "../types/payment";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { PaymentForm } from "../components/payment-form";
 
 export default function PaymentsPage() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
@@ -19,6 +23,8 @@ export default function PaymentsPage() {
   const { data: userSettings } = useUserSettings();
   const updatePaymentMutation = useUpdatePayment();
   const deletePaymentMutation = useDeletePayment();
+  const [showForm, setShowForm] = useState(false);
+  const router = useRouter();
 
   const currentUserSettings: UserSettings = {
     language: userSettings?.language || "EN",
@@ -125,19 +131,48 @@ export default function PaymentsPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <PaymentEdit
-        payments={payments}
-        userSettings={currentUserSettings}
-        onUpdate={updatePayment}
-        onDelete={deletePayment}
-        onMarkAsPaid={markPaymentAsPaid}
-        onMarkAsUnpaid={markPaymentAsUnpaid}
-      />
-      <UndoSnackbar
-        action={undoAction}
-        onUndo={() => setUndoAction(null)}
-        onDismiss={() => setUndoAction(null)}
-      />
+      {showForm ? (
+        <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-xl shadow p-6">
+            <PaymentForm
+              userSettings={currentUserSettings}
+              onSubmit={() => setShowForm(false)}
+            />
+            <button
+              className="mt-4 text-sm text-gray-500 underline"
+              onClick={() => setShowForm(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-end mb-4">
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow px-4 py-2 flex items-center gap-2 font-medium"
+              aria-label="Add Payment"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="h-5 w-5" />
+              Add payment
+            </button>
+          </div>
+          <PaymentEdit
+            payments={payments}
+            userSettings={currentUserSettings}
+            onUpdate={updatePayment}
+            onDelete={deletePayment}
+            onMarkAsPaid={markPaymentAsPaid}
+            onMarkAsUnpaid={markPaymentAsUnpaid}
+          />
+          <UndoSnackbar
+            action={undoAction}
+            onUndo={() => setUndoAction(null)}
+            onDismiss={() => setUndoAction(null)}
+          />
+        </>
+      )}
     </div>
   );
 }

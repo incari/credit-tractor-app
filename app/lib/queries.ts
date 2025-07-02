@@ -2,7 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "./supabase";
-import type { Payment, CreditCard, UserSettings } from "../types/payment";
+import type {
+  Payment,
+  CreditCard,
+  UserSettings,
+  Income,
+  Expense,
+} from "../types/payment";
 
 // Auth queries
 export function useUser() {
@@ -476,5 +482,205 @@ export function useUpdateUserSettings() {
         ...variables,
       }));
     },
+  });
+}
+
+export function useAddIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (income) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("incomes")
+        .insert({ ...income, user_id: user.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (newIncome) => {
+      await queryClient.cancelQueries({ queryKey: ["incomes"] });
+      const previous = queryClient.getQueryData(["incomes"]);
+      queryClient.setQueryData(["incomes"], (old) =>
+        old ? [newIncome, ...old] : [newIncome]
+      );
+      return { previous };
+    },
+    onError: (err, newIncome, context) => {
+      queryClient.setQueryData(["incomes"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomes"] });
+    },
+  });
+}
+
+export function useUpdateIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (income) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("incomes")
+        .update({ ...income })
+        .eq("id", income.id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (updatedIncome) => {
+      await queryClient.cancelQueries({ queryKey: ["incomes"] });
+      const previous = queryClient.getQueryData(["incomes"]);
+      queryClient.setQueryData(["incomes"], (old) =>
+        old
+          ? old.map((i) => (i.id === updatedIncome.id ? updatedIncome : i))
+          : []
+      );
+      return { previous };
+    },
+    onError: (err, updatedIncome, context) => {
+      queryClient.setQueryData(["incomes"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomes"] });
+    },
+  });
+}
+
+export function useAddExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (expense) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("expenses")
+        .insert({ ...expense, user_id: user.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (newExpense) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses"] });
+      const previous = queryClient.getQueryData(["expenses"]);
+      queryClient.setQueryData(["expenses"], (old) =>
+        old ? [newExpense, ...old] : [newExpense]
+      );
+      return { previous };
+    },
+    onError: (err, newExpense, context) => {
+      queryClient.setQueryData(["expenses"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (expense) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({ ...expense })
+        .eq("id", expense.id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (updatedExpense) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses"] });
+      const previous = queryClient.getQueryData(["expenses"]);
+      queryClient.setQueryData(["expenses"], (old) =>
+        old
+          ? old.map((e) => (e.id === updatedExpense.id ? updatedExpense : e))
+          : []
+      );
+      return { previous };
+    },
+    onError: (err, updatedExpense, context) => {
+      queryClient.setQueryData(["expenses"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+// Fetch incomes
+export function useIncomes() {
+  return useQuery<Income[]>({
+    queryKey: ["incomes"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        return [];
+      }
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("incomes")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    },
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Fetch expenses
+export function useExpenses() {
+  return useQuery<Expense[]>({
+    queryKey: ["expenses"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        return [];
+      }
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    },
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
   });
 }
