@@ -9,12 +9,14 @@ import { supabase } from "@/app/lib/supabase";
 import { Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: user } = useUser();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,7 +29,9 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.reload();
+    queryClient.setQueryData(["user"], null);
+    queryClient.clear();
+    window.location.href = "/";
   };
 
   return (

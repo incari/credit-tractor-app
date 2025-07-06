@@ -7,15 +7,19 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import Navbar from "@/components/landing/Navbar";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Header = () => {
   const { data: user } = useUser();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.refresh();
+    queryClient.setQueryData(["user"], null);
+    queryClient.clear();
+    router.push("/");
   };
 
   return (
