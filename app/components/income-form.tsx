@@ -43,9 +43,7 @@ export function IncomeForm({
   const [name, setName] = useState(initialData?.name || "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
   const [paymentDate, setPaymentDate] = useState(
-    isEditing && initialData?.start_date
-      ? initialData.start_date
-      : getLastDayOfCurrentMonth()
+    isEditing && initialData?.start_date ? initialData.start_date : ""
   );
   const [currency, setCurrency] = useState(initialData?.currency || "EUR");
   const [isRecurring, setIsRecurring] = useState(
@@ -67,6 +65,13 @@ export function IncomeForm({
       setCurrency(userSettings.currency);
     }
   }, [userSettings, isEditing]);
+
+  // Set default payment date on client side to prevent hydration issues
+  React.useEffect(() => {
+    if (!isEditing && !initialData?.start_date && !paymentDate) {
+      setPaymentDate(getLastDayOfCurrentMonth());
+    }
+  }, [isEditing, initialData, paymentDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

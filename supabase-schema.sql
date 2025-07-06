@@ -5,6 +5,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 DROP TABLE IF EXISTS public.creditTractor_payments CASCADE;
 DROP TABLE IF EXISTS public.creditTractor_credit_cards CASCADE;
 DROP TABLE IF EXISTS public.creditTractor_user_settings CASCADE;
+DROP TABLE IF EXISTS public.credittractor_expense_categories CASCADE;
+DROP TABLE IF EXISTS public.credittractor_incomes CASCADE;
+DROP TABLE IF EXISTS public.credittractor_expenses CASCADE;
 
 -- Crear tabla de pagos
 CREATE TABLE public.creditTractor_payments (
@@ -50,10 +53,57 @@ CREATE TABLE public.creditTractor_user_settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Crear tabla de categorías de gastos
+CREATE TABLE public.credittractor_expense_categories (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    icon TEXT,
+    color TEXT DEFAULT '#3B82F6',
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, name)
+);
+
+-- Crear tabla de ingresos
+CREATE TABLE public.credittractor_incomes (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    is_recurring BOOLEAN DEFAULT false,
+    recurrence_interval TEXT CHECK (recurrence_interval IN ('Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Yearly')),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Crear tabla de gastos
+CREATE TABLE public.credittractor_expenses (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    category_id UUID REFERENCES public.credittractor_expense_categories(id) ON DELETE SET NULL,
+    is_recurring BOOLEAN DEFAULT false,
+    recurrence_interval TEXT CHECK (recurrence_interval IN ('Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Yearly')),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Activar RLS en todas las tablas
 ALTER TABLE public.creditTractor_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.creditTractor_credit_cards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.creditTractor_user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credittractor_expense_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credittractor_incomes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credittractor_expenses ENABLE ROW LEVEL SECURITY;
 
 -- RLS para creditTractor_payments
 CREATE POLICY "Users can view their own payments" ON public.creditTractor_payments
@@ -94,6 +144,45 @@ CREATE POLICY "Users can update their own settings" ON public.creditTractor_user
 CREATE POLICY "Users can delete their own settings" ON public.creditTractor_user_settings
     FOR DELETE USING (auth.uid() = user_id);
 
+-- RLS para credittractor_expense_categories
+CREATE POLICY "Users can view their own expense categories" ON public.credittractor_expense_categories
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own expense categories" ON public.credittractor_expense_categories
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own expense categories" ON public.credittractor_expense_categories
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own expense categories" ON public.credittractor_expense_categories
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS para credittractor_incomes
+CREATE POLICY "Users can view their own incomes" ON public.credittractor_incomes
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own incomes" ON public.credittractor_incomes
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own incomes" ON public.credittractor_incomes
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own incomes" ON public.credittractor_incomes
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS para credittractor_expenses
+CREATE POLICY "Users can view their own expenses" ON public.credittractor_expenses
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own expenses" ON public.credittractor_expenses
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own expenses" ON public.credittractor_expenses
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own expenses" ON public.credittractor_expenses
+    FOR DELETE USING (auth.uid() = user_id);
+
 -- Índices para performance
 CREATE INDEX creditTractor_payments_user_id_idx ON public.creditTractor_payments(user_id);
 CREATE INDEX creditTractor_payments_created_at_idx ON public.creditTractor_payments(created_at DESC);
@@ -103,6 +192,16 @@ CREATE INDEX creditTractor_credit_cards_user_id_idx ON public.creditTractor_cred
 CREATE INDEX creditTractor_credit_cards_last_four_idx ON public.creditTractor_credit_cards(last_four);
 
 CREATE INDEX creditTractor_user_settings_user_id_idx ON public.creditTractor_user_settings(user_id);
+
+CREATE INDEX credittractor_expense_categories_user_id_idx ON public.credittractor_expense_categories(user_id);
+CREATE INDEX credittractor_expense_categories_name_idx ON public.credittractor_expense_categories(name);
+
+CREATE INDEX credittractor_incomes_user_id_idx ON public.credittractor_incomes(user_id);
+CREATE INDEX credittractor_incomes_start_date_idx ON public.credittractor_incomes(start_date);
+
+CREATE INDEX credittractor_expenses_user_id_idx ON public.credittractor_expenses(user_id);
+CREATE INDEX credittractor_expenses_category_id_idx ON public.credittractor_expenses(category_id);
+CREATE INDEX credittractor_expenses_start_date_idx ON public.credittractor_expenses(start_date);
 
 -- Función para actualizar la columna updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -124,6 +223,18 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_creditTractor_user_settings_updated_at
 BEFORE UPDATE ON public.creditTractor_user_settings
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_credittractor_expense_categories_updated_at
+BEFORE UPDATE ON public.credittractor_expense_categories
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_credittractor_incomes_updated_at
+BEFORE UPDATE ON public.credittractor_incomes
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_credittractor_expenses_updated_at
+BEFORE UPDATE ON public.credittractor_expenses
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Función para crear configuración inicial del usuario
@@ -173,4 +284,7 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.creditTractor_payments TO authenticated;
 GRANT ALL ON public.creditTractor_credit_cards TO authenticated;
 GRANT ALL ON public.creditTractor_user_settings TO authenticated;
+GRANT ALL ON public.credittractor_expense_categories TO authenticated;
+GRANT ALL ON public.credittractor_incomes TO authenticated;
+GRANT ALL ON public.credittractor_expenses TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_creditTractor_payment_stats TO authenticated;

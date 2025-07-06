@@ -673,8 +673,18 @@ export function useAddExpense() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("expenses")
-        .insert({ ...expense, user_id: user.id })
+        .from("credittractor_expenses")
+        .insert({
+          user_id: user.id,
+          name: expense.name,
+          amount: expense.amount,
+          currency: expense.currency,
+          category_id: expense.category_id,
+          is_recurring: expense.is_recurring,
+          recurrence_interval: expense.recurrence_interval,
+          start_date: expense.start_date,
+          end_date: expense.end_date,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -706,8 +716,18 @@ export function useUpdateExpense() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("expenses")
-        .update({ ...expense })
+        .from("credittractor_expenses")
+        .update({
+          name: expense.name,
+          amount: expense.amount,
+          currency: expense.currency,
+          category_id: expense.category_id,
+          is_recurring: expense.is_recurring,
+          recurrence_interval: expense.recurrence_interval,
+          start_date: expense.start_date,
+          end_date: expense.end_date,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", expense.id)
         .eq("user_id", user.id)
         .select()
@@ -728,6 +748,40 @@ export function useUpdateExpense() {
       return { previous };
     },
     onError: (err, updatedExpense, context) => {
+      queryClient.setQueryData(["expenses"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (expenseId: string) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("credittractor_expenses")
+        .delete()
+        .eq("id", expenseId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onMutate: async (expenseId) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses"] });
+      const previous = queryClient.getQueryData(["expenses"]);
+      queryClient.setQueryData(["expenses"], (old: any) =>
+        old ? old.filter((e: any) => e.id !== expenseId) : []
+      );
+      return { previous };
+    },
+    onError: (err, expenseId, context) => {
       queryClient.setQueryData(["expenses"], context?.previous);
     },
     onSettled: () => {
@@ -784,10 +838,20 @@ export function useExpenses() {
       }
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("expenses")
-        .select("*")
+        .from("credittractor_expenses")
+        .select(
+          `
+          *,
+          category:credittractor_expense_categories(
+            id,
+            name,
+            icon,
+            color
+          )
+        `
+        )
         .eq("user_id", user.id)
-        .order("date", { ascending: false });
+        .order("start_date", { ascending: false });
       if (error) throw error;
       return Array.isArray(data) ? data : [];
     },
@@ -826,6 +890,162 @@ export function useDeleteIncome() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["incomes"] });
+    },
+  });
+}
+
+// Expense Categories queries
+export function useExpenseCategories() {
+  return useQuery({
+    queryKey: ["expense-categories"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (
+        authError &&
+        (authError.message.includes("Auth session missing") ||
+          authError.message.includes("Not authenticated"))
+      ) {
+        return [];
+      }
+
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("credittractor_expense_categories")
+        .select("*")
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    },
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useAddExpenseCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (category: any) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("credittractor_expense_categories")
+        .insert({
+          user_id: user.id,
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          is_default: category.is_default || false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (newCategory) => {
+      await queryClient.cancelQueries({ queryKey: ["expense-categories"] });
+      const previous = queryClient.getQueryData(["expense-categories"]);
+      queryClient.setQueryData(["expense-categories"], (old: any) =>
+        old ? [newCategory, ...old] : [newCategory]
+      );
+      return { previous };
+    },
+    onError: (err, newCategory, context) => {
+      queryClient.setQueryData(["expense-categories"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
+    },
+  });
+}
+
+export function useUpdateExpenseCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (category: any) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("credittractor_expense_categories")
+        .update({
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          is_default: category.is_default,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", category.id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (updatedCategory) => {
+      await queryClient.cancelQueries({ queryKey: ["expense-categories"] });
+      const previous = queryClient.getQueryData(["expense-categories"]);
+      queryClient.setQueryData(["expense-categories"], (old: any) =>
+        old
+          ? old.map((c: any) =>
+              c.id === updatedCategory.id ? updatedCategory : c
+            )
+          : []
+      );
+      return { previous };
+    },
+    onError: (err, updatedCategory, context) => {
+      queryClient.setQueryData(["expense-categories"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
+    },
+  });
+}
+
+export function useDeleteExpenseCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (categoryId: string) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("credittractor_expense_categories")
+        .delete()
+        .eq("id", categoryId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onMutate: async (categoryId) => {
+      await queryClient.cancelQueries({ queryKey: ["expense-categories"] });
+      const previous = queryClient.getQueryData(["expense-categories"]);
+      queryClient.setQueryData(["expense-categories"], (old: any) =>
+        old ? old.filter((c: any) => c.id !== categoryId) : []
+      );
+      return { previous };
+    },
+    onError: (err, categoryId, context) => {
+      queryClient.setQueryData(["expense-categories"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
     },
   });
 }

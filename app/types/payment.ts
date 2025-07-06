@@ -69,16 +69,29 @@ export interface Income {
   updated_at?: string;
 }
 
+export interface ExpenseCategory {
+  id: string;
+  user_id: string;
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Expense {
   id: string;
   user_id: string;
   name: string;
   amount: number;
-  date: string;
-  category: string;
-  account: string;
-  payment_method: string;
-  recurring: boolean;
-  frequency?: string | null;
-  notes?: string;
+  currency: string;
+  category_id?: string | null;
+  category?: ExpenseCategory | null;
+  is_recurring: boolean;
+  recurrence_interval?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }

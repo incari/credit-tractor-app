@@ -1,7 +1,14 @@
 import React, { useState } from "react";
-import { EnhancedCombobox } from "./enhanced-combobox";
 import { supabase } from "../lib/supabase";
-import { useAddExpense, useUpdateExpense } from "../lib/queries";
+import {
+  useAddExpense,
+  useUpdateExpense,
+  useUserSettings,
+} from "../lib/queries";
+import { CurrencySelector } from "./currency-selector";
+import { CategorySelector } from "./category-selector";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 interface ExpenseFormProps {
   onSubmit: () => void;
@@ -9,87 +16,84 @@ interface ExpenseFormProps {
   initialData?: any;
 }
 
-const defaultCategories = [
-  { value: "Groceries", label: "Groceries" },
-  { value: "Rent", label: "Rent" },
-  { value: "Utilities", label: "Utilities" },
-  { value: "Dining", label: "Dining" },
-  { value: "Transport", label: "Transport" },
-  { value: "Health", label: "Health" },
-  { value: "Entertainment", label: "Entertainment" },
-  { value: "Other", label: "Other" },
-];
-const defaultAccounts = [
-  { value: "Checking", label: "Checking" },
-  { value: "Savings", label: "Savings" },
-  { value: "Cash", label: "Cash" },
-  { value: "Other", label: "Other" },
-];
-const paymentMethods = [
-  { value: "Credit Card", label: "Credit Card" },
-  { value: "Debit Card", label: "Debit Card" },
-  { value: "Cash", label: "Cash" },
-  { value: "Bank Transfer", label: "Bank Transfer" },
-  { value: "Other", label: "Other" },
-];
 const frequencies = ["Weekly", "Biweekly", "Monthly", "Quarterly", "Yearly"];
+
+// Helper function to get the last day of the current month
+const getLastDayOfCurrentMonth = () => {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return lastDay.toISOString().split("T")[0];
+};
 
 export function ExpenseForm({
   onSubmit,
   isEditing = false,
   initialData,
 }: ExpenseFormProps) {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
-  const [categoryOptions, setCategoryOptions] = useState(defaultCategories);
-  const [category, setCategory] = useState(defaultCategories[0].value);
-  const [accountOptions, setAccountOptions] = useState(defaultAccounts);
-  const [account, setAccount] = useState(defaultAccounts[0].value);
-  const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0].value);
-  const [recurring, setRecurring] = useState(false);
-  const [frequency, setFrequency] = useState(frequencies[0]);
-  const [notes, setNotes] = useState("");
+  const [name, setName] = useState(initialData?.name || "");
+  const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
+  const [paymentDate, setPaymentDate] = useState(
+    isEditing && initialData?.start_date ? initialData.start_date : ""
+  );
+  const [currency, setCurrency] = useState(initialData?.currency || "EUR");
+  const [categoryId, setCategoryId] = useState(initialData?.category_id || "");
+  const [isRecurring, setIsRecurring] = useState(
+    initialData?.is_recurring || false
+  );
+  const [recurrenceInterval, setRecurrenceInterval] = useState(
+    initialData?.recurrence_interval || "Monthly"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const addExpenseMutation = useAddExpense();
   const updateExpenseMutation = useUpdateExpense();
+  const { data: userSettings } = useUserSettings();
 
-  const handleAddCategory = (newCat: { name: string }) => {
-    const newOption = { value: newCat.name, label: newCat.name };
-    setCategoryOptions((prev) => [...prev, newOption]);
-    setCategory(newCat.name);
-  };
-  const handleAddAccount = (newAcc: { name: string }) => {
-    const newOption = { value: newAcc.name, label: newAcc.name };
-    setAccountOptions((prev) => [...prev, newOption]);
-    setAccount(newAcc.name);
-  };
+  // Set default currency from user settings only if not editing
+  React.useEffect(() => {
+    if (!isEditing && userSettings?.currency) {
+      setCurrency(userSettings.currency);
+    }
+  }, [userSettings, isEditing]);
+
+  // Set default payment date on client side to prevent hydration issues
+  React.useEffect(() => {
+    if (!isEditing && !initialData?.start_date && !paymentDate) {
+      setPaymentDate(getLastDayOfCurrentMonth());
+    }
+  }, [isEditing, initialData, paymentDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     const expenseData = {
       name,
       amount: parseFloat(amount),
-      date,
-      category,
-      account,
-      payment_method: paymentMethod,
-      recurring,
-      frequency: recurring ? frequency : null,
-      notes,
+      currency,
+      category_id: categoryId || null,
+      is_recurring: isRecurring,
+      recurrence_interval: isRecurring ? recurrenceInterval : null,
+      start_date: paymentDate,
+      end_date: null, // Always null since we don't use end date
     };
-    if (isEditing && initialData) {
-      updateExpenseMutation.mutate(
-        { ...expenseData, id: initialData.id },
-        { onSuccess: onSubmit, onError: (err: any) => setError(err.message) }
-      );
-    } else {
-      addExpenseMutation.mutate(expenseData, {
-        onSuccess: onSubmit,
-        onError: (err: any) => setError(err.message),
-      });
+
+    try {
+      if (isEditing && initialData) {
+        await updateExpenseMutation.mutateAsync({
+          ...expenseData,
+          id: initialData.id,
+        });
+      } else {
+        await addExpenseMutation.mutateAsync(expenseData);
+      }
+      onSubmit();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,6 +128,7 @@ export function ExpenseForm({
           <input
             id="expense-amount"
             type="number"
+            step="0.01"
             className="w-full border rounded px-3 py-2"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -132,18 +137,14 @@ export function ExpenseForm({
         </div>
         <div className="space-y-2">
           <label
-            htmlFor="expense-date"
+            htmlFor="expense-currency"
             className="block font-medium"
           >
-            Date
+            Currency
           </label>
-          <input
-            id="expense-date"
-            type="date"
-            className="w-full border rounded px-3 py-2"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
+          <CurrencySelector
+            value={currency}
+            onValueChange={setCurrency}
           />
         </div>
         <div className="space-y-2">
@@ -153,67 +154,41 @@ export function ExpenseForm({
           >
             Category
           </label>
-          <EnhancedCombobox
-            options={categoryOptions}
-            value={category}
-            onValueChange={setCategory}
-            onAddCard={({ name }) => handleAddCategory({ name })}
-            placeholder="Select or add category..."
+          <CategorySelector
+            value={categoryId}
+            onValueChange={setCategoryId}
           />
         </div>
         <div className="space-y-2">
           <label
-            htmlFor="expense-account"
+            htmlFor="expense-payment-date"
             className="block font-medium"
           >
-            Account
+            Payment Date
           </label>
-          <EnhancedCombobox
-            options={accountOptions}
-            value={account}
-            onValueChange={setAccount}
-            onAddCard={({ name }) => handleAddAccount({ name })}
-            placeholder="Select or add account..."
-          />
-        </div>
-        <div className="space-y-2">
-          <label
-            htmlFor="expense-payment-method"
-            className="block font-medium"
-          >
-            Payment Method
-          </label>
-          <select
-            id="expense-payment-method"
+          <input
+            id="expense-payment-date"
+            type="date"
             className="w-full border rounded px-3 py-2"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          >
-            {paymentMethods.map((pm) => (
-              <option
-                key={pm.value}
-                value={pm.value}
-              >
-                {pm.label}
-              </option>
-            ))}
-          </select>
+            value={paymentDate}
+            onChange={(e) => setPaymentDate(e.target.value)}
+            required
+          />
         </div>
         <div className="flex items-center space-x-2">
-          <input
+          <Switch
             id="expense-recurring"
-            type="checkbox"
-            checked={recurring}
-            onChange={(e) => setRecurring(e.target.checked)}
+            checked={isRecurring}
+            onCheckedChange={setIsRecurring}
           />
           <label
             htmlFor="expense-recurring"
             className="font-medium"
           >
-            Recurring?
+            Recurring
           </label>
         </div>
-        {recurring && (
+        {isRecurring && (
           <div className="space-y-2">
             <label
               htmlFor="expense-frequency"
@@ -224,8 +199,8 @@ export function ExpenseForm({
             <select
               id="expense-frequency"
               className="w-full border rounded px-3 py-2"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
+              value={recurrenceInterval}
+              onChange={(e) => setRecurrenceInterval(e.target.value)}
             >
               {frequencies.map((freq) => (
                 <option
@@ -239,29 +214,20 @@ export function ExpenseForm({
           </div>
         )}
       </div>
-      <div className="space-y-2">
-        <label
-          htmlFor="expense-notes"
-          className="block font-medium"
-        >
-          Notes
-        </label>
-        <textarea
-          id="expense-notes"
-          className="w-full border rounded px-3 py-2"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-        />
-      </div>
       {error && <div className="text-red-500 text-sm">{error}</div>}
-      <button
+      <Button
         type="submit"
-        className="w-full bg-green-500 hover:bg-green-600 text-white rounded-lg px-4 py-2 font-medium"
         disabled={loading}
+        className="w-full"
       >
-        {loading ? "Adding..." : "Add Expense"}
-      </button>
+        {loading
+          ? isEditing
+            ? "Updating..."
+            : "Adding..."
+          : isEditing
+          ? "Update Expense"
+          : "Add Expense"}
+      </Button>
     </form>
   );
 }
