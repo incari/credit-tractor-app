@@ -14,6 +14,7 @@ interface ExpenseFormProps {
   onSubmit: () => void;
   isEditing?: boolean;
   initialData?: any;
+  t: any;
 }
 
 const frequencies = ["Weekly", "Biweekly", "Monthly", "Quarterly", "Yearly"];
@@ -29,6 +30,7 @@ export function ExpenseForm({
   onSubmit,
   isEditing = false,
   initialData,
+  t,
 }: ExpenseFormProps) {
   const [name, setName] = useState(initialData?.name || "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
@@ -108,7 +110,7 @@ export function ExpenseForm({
             htmlFor="expense-name"
             className="block font-medium"
           >
-            Name
+            {t.name ?? "Name"}
           </label>
           <input
             id="expense-name"
@@ -116,6 +118,7 @@ export function ExpenseForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            placeholder={t.name ?? "Name"}
           />
         </div>
         <div className="space-y-2">
@@ -123,7 +126,7 @@ export function ExpenseForm({
             htmlFor="expense-amount"
             className="block font-medium"
           >
-            Amount
+            {t.amount ?? "Amount"}
           </label>
           <input
             id="expense-amount"
@@ -133,6 +136,7 @@ export function ExpenseForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
+            placeholder={t.amount ?? "Amount"}
           />
         </div>
         <div className="space-y-2">
@@ -140,7 +144,7 @@ export function ExpenseForm({
             htmlFor="expense-currency"
             className="block font-medium"
           >
-            Currency
+            {t.currency ?? "Currency"}
           </label>
           <CurrencySelector
             value={currency}
@@ -152,7 +156,7 @@ export function ExpenseForm({
             htmlFor="expense-category"
             className="block font-medium"
           >
-            Category
+            {t.category ?? "Category"}
           </label>
           <CategorySelector
             value={categoryId}
@@ -164,7 +168,7 @@ export function ExpenseForm({
             htmlFor="expense-payment-date"
             className="block font-medium"
           >
-            Payment Date
+            {t.paymentDate ?? "Payment Date"}
           </label>
           <input
             id="expense-payment-date"
@@ -173,6 +177,7 @@ export function ExpenseForm({
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             required
+            placeholder={t.paymentDate ?? "Payment Date"}
           />
         </div>
         <div className="flex items-center space-x-2">
@@ -185,7 +190,7 @@ export function ExpenseForm({
             htmlFor="expense-recurring"
             className="font-medium"
           >
-            Recurring
+            {t.recurring ?? "Recurring"}
           </label>
         </div>
         {isRecurring && (
@@ -194,7 +199,7 @@ export function ExpenseForm({
               htmlFor="expense-frequency"
               className="block font-medium"
             >
-              Frequency
+              {t.frequency ?? "Frequency"}
             </label>
             <select
               id="expense-frequency"
@@ -207,27 +212,25 @@ export function ExpenseForm({
                   key={freq}
                   value={freq}
                 >
-                  {freq}
+                  {t[freq.toLowerCase()] ?? freq}
                 </option>
               ))}
             </select>
           </div>
         )}
       </div>
-      {error && <div className="text-red-500 text-sm">{error}</div>}
       <Button
         type="submit"
-        disabled={loading}
         className="w-full"
+        disabled={loading}
       >
         {loading
-          ? isEditing
-            ? "Updating..."
-            : "Adding..."
+          ? t.saving ?? "Saving..."
           : isEditing
-          ? "Update Expense"
-          : "Add Expense"}
+          ? t.updateExpense ?? "Update Expense"
+          : t.addExpense ?? "Add Expense"}
       </Button>
+      {error && <div className="text-red-500 text-sm">{error}</div>}
     </form>
   );
 }

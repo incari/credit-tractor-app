@@ -10,6 +10,7 @@ interface IncomeFormProps {
   onSubmit: () => void;
   isEditing?: boolean;
   initialData?: any;
+  t: any;
 }
 
 const defaultCategories = [
@@ -39,6 +40,7 @@ export function IncomeForm({
   onSubmit,
   isEditing = false,
   initialData,
+  t,
 }: IncomeFormProps) {
   const [name, setName] = useState(initialData?.name || "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
@@ -116,7 +118,7 @@ export function IncomeForm({
             htmlFor="income-name"
             className="block font-medium"
           >
-            Name
+            {t.name ?? "Name"}
           </label>
           <input
             id="income-name"
@@ -124,6 +126,7 @@ export function IncomeForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            placeholder={t.name ?? "Name"}
           />
         </div>
         <div className="space-y-2">
@@ -131,7 +134,7 @@ export function IncomeForm({
             htmlFor="income-amount"
             className="block font-medium"
           >
-            Amount
+            {t.amount ?? "Amount"}
           </label>
           <input
             id="income-amount"
@@ -141,6 +144,7 @@ export function IncomeForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
+            placeholder={t.amount ?? "Amount"}
           />
         </div>
         <div className="space-y-2">
@@ -148,7 +152,7 @@ export function IncomeForm({
             htmlFor="income-currency"
             className="block font-medium"
           >
-            Currency
+            {t.currency ?? "Currency"}
           </label>
           <CurrencySelector
             value={currency}
@@ -160,7 +164,7 @@ export function IncomeForm({
             htmlFor="income-payment-date"
             className="block font-medium"
           >
-            Payment Date
+            {t.paymentDate ?? "Payment Date"}
           </label>
           <input
             id="income-payment-date"
@@ -169,6 +173,7 @@ export function IncomeForm({
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             required
+            placeholder={t.paymentDate ?? "Payment Date"}
           />
         </div>
         <div className="flex items-center space-x-2">
@@ -181,7 +186,7 @@ export function IncomeForm({
             htmlFor="income-recurring"
             className="font-medium"
           >
-            Recurring
+            {t.recurring ?? "Recurring"}
           </label>
         </div>
         {isRecurring && (
@@ -190,7 +195,7 @@ export function IncomeForm({
               htmlFor="income-frequency"
               className="block font-medium"
             >
-              Frequency
+              {t.frequency ?? "Frequency"}
             </label>
             <select
               id="income-frequency"
@@ -203,27 +208,25 @@ export function IncomeForm({
                   key={freq}
                   value={freq}
                 >
-                  {freq}
+                  {t[freq.toLowerCase()] ?? freq}
                 </option>
               ))}
             </select>
           </div>
         )}
       </div>
-      {error && <div className="text-red-500 text-sm">{error}</div>}
       <Button
         type="submit"
-        disabled={loading}
         className="w-full"
+        disabled={loading}
       >
         {loading
-          ? isEditing
-            ? "Updating..."
-            : "Adding..."
+          ? t.saving ?? "Saving..."
           : isEditing
-          ? "Update Income"
-          : "Add Income"}
+          ? t.updateIncome ?? "Update Income"
+          : t.addIncome ?? "Add Income"}
       </Button>
+      {error && <div className="text-red-500 text-sm">{error}</div>}
     </form>
   );
 }

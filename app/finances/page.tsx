@@ -43,6 +43,7 @@ import type {
   Expense,
   ExpenseCategory,
 } from "../types/payment";
+import { translations } from "../utils/translations";
 
 const iconMap: Record<string, React.ElementType> = {
   home: HomeFill,
@@ -72,6 +73,9 @@ export default function FinancesPage() {
   const deleteIncomeMutation = useDeleteIncome();
   const updateExpenseMutation = useUpdateExpense();
   const deleteExpenseMutation = useDeleteExpense();
+
+  const lang = (userSettings?.language || "EN") as keyof typeof translations;
+  const t = translations[lang];
 
   const handleEditIncome = (income: Income) => {
     setEditingIncome(income);
@@ -137,7 +141,7 @@ export default function FinancesPage() {
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Finances</h1>
+        <h1 className="text-3xl font-bold">{t.finances ?? "Finances"}</h1>
       </div>
 
       {!showIncomeForm && !showExpenseForm && (
@@ -151,7 +155,7 @@ export default function FinancesPage() {
               }`}
               onClick={() => setTab("incomes")}
             >
-              Incomes
+              {t.incomes ?? "Incomes"}
             </button>
             <button
               className={`flex-1 font-semibold py-2.5 rounded-xl transition-all duration-150 ${
@@ -161,7 +165,7 @@ export default function FinancesPage() {
               }`}
               onClick={() => setTab("expenses")}
             >
-              Expenses
+              {t.expenses ?? "Expenses"}
             </button>
           </div>
           <div className="flex justify-end mb-4">
@@ -171,7 +175,7 @@ export default function FinancesPage() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-5 w-5" />
-                Add income
+                {t.addIncome ?? "Add income"}
               </Button>
             )}
             {tab === "expenses" && (
@@ -180,7 +184,7 @@ export default function FinancesPage() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-5 w-5" />
-                Add expense
+                {t.addExpense ?? "Add expense"}
               </Button>
             )}
           </div>
@@ -191,16 +195,19 @@ export default function FinancesPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {editingIncome ? "Edit Income" : "Add Income"}
+              {editingIncome
+                ? t.editIncome ?? "Edit Income"
+                : t.addIncome ?? "Add income"}
             </CardTitle>
             <CardDescription>
               {editingIncome
-                ? "Update the income details"
-                : "Add a new income source"}
+                ? t.updateIncomeDesc ?? "Update the income details"
+                : t.addIncomeDesc ?? "Add a new income source"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <IncomeForm
+              t={t}
               onSubmit={handleIncomeSubmit}
               isEditing={!!editingIncome}
               initialData={editingIncome}
@@ -213,7 +220,7 @@ export default function FinancesPage() {
               }}
               className="w-full"
             >
-              Cancel
+              {t.cancelEdit ?? "Cancel"}
             </Button>
           </CardContent>
         </Card>
@@ -222,16 +229,19 @@ export default function FinancesPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {editingExpense ? "Edit Expense" : "Add Expense"}
+              {editingExpense
+                ? t.editExpense ?? "Edit Expense"
+                : t.addExpense ?? "Add expense"}
             </CardTitle>
             <CardDescription>
               {editingExpense
-                ? "Update the expense details"
-                : "Add a new expense"}
+                ? t.updateExpenseDesc ?? "Update the expense details"
+                : t.addExpenseDesc ?? "Add a new expense"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <ExpenseForm
+              t={t}
               onSubmit={handleExpenseSubmit}
               isEditing={!!editingExpense}
               initialData={editingExpense}
@@ -244,7 +254,7 @@ export default function FinancesPage() {
               }}
               className="w-full"
             >
-              Cancel
+              {t.cancelEdit ?? "Cancel"}
             </Button>
           </CardContent>
         </Card>
@@ -255,8 +265,10 @@ export default function FinancesPage() {
         (tab === "incomes" ? (
           <Card>
             <CardHeader>
-              <CardTitle>Incomes</CardTitle>
-              <CardDescription>Manage your income sources</CardDescription>
+              <CardTitle>{t.incomes ?? "Incomes"}</CardTitle>
+              <CardDescription>
+                {t.manageIncomes ?? "Manage your income sources"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {incomesLoading ? (
@@ -275,17 +287,26 @@ export default function FinancesPage() {
                           <h3 className="font-medium text-lg">{income.name}</h3>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                             <div>
-                              <span className="font-medium">Amount:</span>{" "}
+                              <span className="font-medium">
+                                {t.amount ?? "Amount"}:
+                              </span>{" "}
                               {formatCurrency(income.amount, income.currency)}
                             </div>
                             <div>
-                              <span className="font-medium">Payment Date:</span>{" "}
+                              <span className="font-medium">
+                                {t.paymentDate ?? "Payment Date"}:
+                              </span>{" "}
                               {new Date(income.start_date).toLocaleDateString()}
                             </div>
                             {income.is_recurring && (
                               <div>
-                                <span className="font-medium">Frequency:</span>{" "}
-                                {income.recurrence_interval}
+                                <span className="font-medium">
+                                  {t.frequency ?? "Frequency"}:
+                                </span>{" "}
+                                {t[
+                                  income.recurrence_interval?.toLowerCase() ??
+                                    ""
+                                ] ?? income.recurrence_interval}
                               </div>
                             )}
                           </div>
@@ -312,7 +333,8 @@ export default function FinancesPage() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No incomes found. Add your first income to get started.
+                  {t.noIncomes ??
+                    "No incomes found. Add your first income to get started."}
                 </div>
               )}
             </CardContent>
@@ -320,8 +342,10 @@ export default function FinancesPage() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Expenses</CardTitle>
-              <CardDescription>Manage your expenses</CardDescription>
+              <CardTitle>{t.expenses ?? "Expenses"}</CardTitle>
+              <CardDescription>
+                {t.manageExpenses ?? "Manage your expenses"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {expensesLoading ? (
@@ -371,7 +395,9 @@ export default function FinancesPage() {
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                               <div>
-                                <span className="font-medium">Amount:</span>{" "}
+                                <span className="font-medium">
+                                  {t.amount ?? "Amount"}:
+                                </span>{" "}
                                 {formatCurrency(
                                   expense.amount,
                                   expense.currency
@@ -379,7 +405,7 @@ export default function FinancesPage() {
                               </div>
                               <div>
                                 <span className="font-medium">
-                                  Payment Date:
+                                  {t.paymentDate ?? "Payment Date"}:
                                 </span>{" "}
                                 {new Date(
                                   expense.start_date
@@ -388,9 +414,12 @@ export default function FinancesPage() {
                               {expense.is_recurring && (
                                 <div>
                                   <span className="font-medium">
-                                    Frequency:
+                                    {t.frequency ?? "Frequency"}:
                                   </span>{" "}
-                                  {expense.recurrence_interval}
+                                  {t[
+                                    (expense.recurrence_interval?.toLowerCase() ??
+                                      "") as keyof typeof t
+                                  ] ?? expense.recurrence_interval}
                                 </div>
                               )}
                             </div>

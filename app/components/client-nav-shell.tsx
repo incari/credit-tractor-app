@@ -1,11 +1,12 @@
 "use client";
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { useUser } from "../lib/queries";
+import { useUser, useUserSettings } from "../lib/queries";
 import { useRouter, usePathname } from "next/navigation";
 import Navbar from "@/components/landing/Navbar";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Plus } from "lucide-react";
+import { translations } from "../utils/translations";
 
 export default function ClientNavShell({
   children,
@@ -13,8 +14,11 @@ export default function ClientNavShell({
   children: React.ReactNode;
 }) {
   const { data: user, isLoading } = useUser();
+  const { data: userSettings } = useUserSettings();
   const router = useRouter();
   const pathname = usePathname();
+  const lang = (userSettings?.language as keyof typeof translations) || "EN";
+  const t = translations[lang];
   useEffect(() => {
     if (!isLoading && user && pathname === "/") {
       router.replace("/dashboard");
@@ -51,7 +55,7 @@ export default function ClientNavShell({
                     href="/dashboard"
                     className="w-full text-center"
                   >
-                    Dashboard
+                    {t.dashboard}
                   </Link>
                 </TabsTrigger>
                 <TabsTrigger
@@ -63,7 +67,7 @@ export default function ClientNavShell({
                     href="/payments"
                     className="w-full text-center"
                   >
-                    Payments
+                    {t.payments}
                   </Link>
                 </TabsTrigger>
                 <TabsTrigger
@@ -75,7 +79,7 @@ export default function ClientNavShell({
                     href="/table"
                     className="w-full text-center"
                   >
-                    Table
+                    {t.tableView}
                   </Link>
                 </TabsTrigger>
                 <TabsTrigger
@@ -87,7 +91,7 @@ export default function ClientNavShell({
                     href="/finances"
                     className="w-full text-center"
                   >
-                    Finances
+                    {t.finances}
                   </Link>
                 </TabsTrigger>
               </TabsList>
