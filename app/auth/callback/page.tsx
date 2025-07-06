@@ -36,7 +36,7 @@ export default function AuthCallback() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex items-center justify-center pt-24 md:pt-28 min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)]">
       <div className="text-center">
         <h2 className="text-xl font-semibold">Completing sign in...</h2>
         <p className="text-muted-foreground">

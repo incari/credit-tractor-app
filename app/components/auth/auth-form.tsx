@@ -82,7 +82,7 @@ export function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8 pt-24 md:pt-28 min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)]">
       {/* Background decorations */}
       <div className="absolute top-20 right-20 w-72 h-72 bg-green-100 rounded-full opacity-30 blur-3xl"></div>
       <div className="absolute bottom-20 left-20 w-64 h-64 bg-blue-100 rounded-full opacity-40 blur-3xl"></div>

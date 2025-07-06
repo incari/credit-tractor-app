@@ -15,7 +15,7 @@ export function LoadingScreen({
   debugInfo,
 }: LoadingScreenProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
+    <div className="flex items-center justify-center bg-gradient-to-br from-green-50 to-white pt-24 md:pt-28 min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)]">
       <div className="text-center space-y-4">
         <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mx-auto animate-pulse">
           <Tractor className="h-6 w-6 text-white" />

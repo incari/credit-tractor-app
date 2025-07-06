@@ -22,7 +22,7 @@ import { useAddPayment, useUpdatePayment } from "../lib/queries";
 interface PaymentFormProps {
   onSubmit: (payment: Payment) => void;
   userSettings: UserSettings;
-  onAddCard?: (card: CreditCard) => void;
+  onAddCard?: (card: { name: string; lastFour: string }) => void;
   initialData?: Payment;
   isEditing?: boolean;
 }
@@ -91,12 +91,7 @@ export function PaymentForm({
   };
 
   const handleAddCard = (card: { name: string; lastFour: string }) => {
-    const newCard: CreditCard = {
-      id: Date.now().toString(),
-      name: card.name,
-      lastFour: card.lastFour,
-    };
-    onAddCard?.(newCard);
+    onAddCard?.({ name: card.name, lastFour: card.lastFour });
   };
 
   const creditCardOptions = userSettings.creditCards.map((card) => ({
@@ -271,10 +266,12 @@ export function PaymentForm({
         type="submit"
         className="w-full"
         disabled={
-          addPaymentMutation.isLoading || updatePaymentMutation.isLoading
+          addPaymentMutation.status === "pending" ||
+          updatePaymentMutation.status === "pending"
         }
       >
-        {addPaymentMutation.isLoading || updatePaymentMutation.isLoading
+        {addPaymentMutation.status === "pending" ||
+        updatePaymentMutation.status === "pending"
           ? "Saving..."
           : isEditing
           ? t.updatePayment

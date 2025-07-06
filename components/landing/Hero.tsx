@@ -5,7 +5,7 @@ import { ArrowRight, Play, Tractor } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 overflow-hidden">
+    <section className="relative flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 overflow-hidden pt-24 md:pt-28">
       {/* Background decorations */}
       <div className="absolute top-20 right-20 w-72 h-72 bg-green-100 rounded-full opacity-30 blur-3xl"></div>
       <div className="absolute bottom-20 left-20 w-64 h-64 bg-blue-100 rounded-full opacity-40 blur-3xl"></div>

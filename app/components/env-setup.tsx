@@ -55,7 +55,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`;
     isValidKey(credentials.supabaseAnonKey);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-green-50 to-white flex items-center justify-center p-4 pt-24 md:pt-28 min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-7rem)]">
       <div className="w-full max-w-4xl space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">

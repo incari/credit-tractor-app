@@ -342,13 +342,17 @@ export function useAddCreditCard() {
           user_id: user.id,
           name: card.name,
           last_four: card.lastFour,
-          limit: card.limit,
+          credit_limit: card.limit,
           yearly_fee: card.yearlyFee,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error (credit card):", error);
+        throw error;
+      }
+      console.log("Supabase insert success (credit card):", data);
       return data;
     },
     onMutate: async (newCard) => {
@@ -369,6 +373,93 @@ export function useAddCreditCard() {
       return { previousCards };
     },
     onError: (err, newCard, context) => {
+      console.error("Mutation error (credit card):", err);
+      queryClient.setQueryData(["credit-cards"], context?.previousCards);
+    },
+    onSuccess: (data) => {
+      console.log("Mutation success (credit card):", data);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+    },
+  });
+}
+
+// Add update and delete mutations for credit cards
+export function useUpdateCreditCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (card: CreditCard) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("creditTractor_credit_cards")
+        .update({
+          name: card.name,
+          last_four: card.lastFour,
+          credit_limit: card.limit,
+          yearly_fee: card.yearlyFee,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", card.id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (updatedCard) => {
+      await queryClient.cancelQueries({ queryKey: ["credit-cards"] });
+      const previousCards = queryClient.getQueryData<CreditCard[]>([
+        "credit-cards",
+      ]);
+      queryClient.setQueryData<CreditCard[]>(["credit-cards"], (old) =>
+        old ? old.map((c) => (c.id === updatedCard.id ? updatedCard : c)) : []
+      );
+      return { previousCards };
+    },
+    onError: (err, updatedCard, context) => {
+      queryClient.setQueryData(["credit-cards"], context?.previousCards);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+    },
+  });
+}
+
+export function useDeleteCreditCard() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (cardId: string) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("creditTractor_credit_cards")
+        .delete()
+        .eq("id", cardId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onMutate: async (cardId) => {
+      await queryClient.cancelQueries({ queryKey: ["credit-cards"] });
+      const previousCards = queryClient.getQueryData<CreditCard[]>([
+        "credit-cards",
+      ]);
+      queryClient.setQueryData<CreditCard[]>(["credit-cards"], (old) =>
+        old ? old.filter((c) => c.id !== cardId) : []
+      );
+      return { previousCards };
+    },
+    onError: (err, cardId, context) => {
       queryClient.setQueryData(["credit-cards"], context?.previousCards);
     },
     onSettled: () => {

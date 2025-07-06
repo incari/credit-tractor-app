@@ -26,6 +26,11 @@ import { translations } from "../utils/translations";
 import { calculateCreditUsage } from "../utils/credit-utils";
 import { CurrencySelector } from "./currency-selector";
 import { useUpdateUserSettings } from "../lib/queries";
+import {
+  useAddCreditCard,
+  useUpdateCreditCard,
+  useDeleteCreditCard,
+} from "../lib/queries";
 
 interface SettingsProps {
   userSettings: UserSettings;
@@ -49,8 +54,12 @@ export function Settings({
     yearlyFee: "",
   });
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [addCardError, setAddCardError] = useState("");
   const t = translations[userSettings.language];
   const updateUserSettings = useUpdateUserSettings();
+  const addCreditCardMutation = useAddCreditCard();
+  const updateCreditCardMutation = useUpdateCreditCard();
+  const deleteCreditCardMutation = useDeleteCreditCard();
 
   // Use the live credit card list if provided, otherwise fallback to userSettings.creditCards
   const cards = creditCards ?? userSettings.creditCards;
@@ -76,35 +85,38 @@ export function Settings({
   };
 
   const handleAddCard = () => {
+    setAddCardError("");
     if (newCard.name && newCard.lastFour && newCard.lastFour.length === 4) {
-      const card: CreditCard = {
-        id: Date.now().toString(),
-        name: newCard.name,
-        lastFour: newCard.lastFour,
-        limit: newCard.limit ? Number.parseFloat(newCard.limit) : undefined,
-        yearlyFee: newCard.yearlyFee
-          ? Number.parseFloat(newCard.yearlyFee)
-          : undefined,
-      };
-      onUpdateSettings({
-        ...userSettings,
-        creditCards: [...userSettings.creditCards, card],
-      });
+      // Check for duplicate last four digits
+      const exists = cards.some((card) => card.lastFour === newCard.lastFour);
+      if (exists) {
+        setAddCardError("A card with these last four digits already exists.");
+        return;
+      }
+      addCreditCardMutation.mutate(
+        {
+          name: newCard.name,
+          lastFour: newCard.lastFour,
+          limit: newCard.limit ? Number.parseFloat(newCard.limit) : undefined,
+          yearlyFee: newCard.yearlyFee
+            ? Number.parseFloat(newCard.yearlyFee)
+            : undefined,
+        },
+        {
+          onError: () => setAddCardError("Failed to add credit card"),
+        }
+      );
       setNewCard({ name: "", lastFour: "", limit: "", yearlyFee: "" });
     }
   };
 
   const handleUpdateCard = (updatedCard: CreditCard) => {
-    const oldCard = userSettings.creditCards.find(
+    const oldCard = (creditCards ?? userSettings.creditCards).find(
       (c) => c.id === updatedCard.id
     );
 
-    // Update the card in settings
-    onUpdateSettings({
-      ...userSettings,
-      creditCards: userSettings.creditCards.map((card) =>
-        card.id === updatedCard.id ? updatedCard : card
-      ),
+    updateCreditCardMutation.mutate(updatedCard, {
+      onError: () => alert("Failed to update credit card"),
     });
 
     // Update all payments that use this card
@@ -121,11 +133,8 @@ export function Settings({
   };
 
   const handleDeleteCard = (cardId: string) => {
-    onUpdateSettings({
-      ...userSettings,
-      creditCards: userSettings.creditCards.filter(
-        (card) => card.id !== cardId
-      ),
+    deleteCreditCardMutation.mutate(cardId, {
+      onError: () => alert("Failed to delete credit card"),
     });
   };
 
@@ -404,6 +413,9 @@ export function Settings({
 
           <div className="border-t pt-4">
             <h4 className="font-medium mb-3">{t.addCreditCard}</h4>
+            {addCardError && (
+              <div className="text-red-500 text-sm mb-2">{addCardError}</div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="cardName">{t.cardName}</Label>

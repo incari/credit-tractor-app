@@ -59,7 +59,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="pt-24 md:pt-28">
       <Navbar />
       <main className="space-y-0">
         <Hero />

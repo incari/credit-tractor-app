@@ -7,6 +7,8 @@ import {
   useDeletePayment,
   useUserSettings,
   useUser,
+  useCreditCards,
+  useAddCreditCard,
 } from "../lib/queries";
 import { UndoSnackbar } from "../components/undo-snackbar";
 import { LoadingScreen } from "../components/loading-screen";
@@ -21,6 +23,8 @@ export default function PaymentsPage() {
   const { data: user, isLoading: userLoading } = useUser();
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   const { data: userSettings } = useUserSettings();
+  const { data: creditCards = [] } = useCreditCards();
+  const addCreditCardMutation = useAddCreditCard();
   const updatePaymentMutation = useUpdatePayment();
   const deletePaymentMutation = useDeletePayment();
   const [showForm, setShowForm] = useState(false);
@@ -29,7 +33,7 @@ export default function PaymentsPage() {
   const currentUserSettings: UserSettings = {
     language: userSettings?.language || "EN",
     currency: userSettings?.currency || "EUR",
-    creditCards: userSettings?.creditCards ?? [],
+    creditCards: creditCards,
     lastUsedCard: userSettings?.lastUsedCard || undefined,
     monthsToShow: userSettings?.monthsToShow || 12,
   };
@@ -137,6 +141,16 @@ export default function PaymentsPage() {
             <PaymentForm
               userSettings={currentUserSettings}
               onSubmit={() => setShowForm(false)}
+              onAddCard={async (card) => {
+                try {
+                  await addCreditCardMutation.mutateAsync({
+                    name: card.name,
+                    lastFour: card.lastFour,
+                  });
+                } catch (e) {
+                  console.error("Failed to add card", e);
+                }
+              }}
             />
             <button
               className="mt-4 text-sm text-gray-500 underline"

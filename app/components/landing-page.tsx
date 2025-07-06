@@ -57,7 +57,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="pt-24 md:pt-28">
       <main className="space-y-0">
         <Hero />
         <Features />
