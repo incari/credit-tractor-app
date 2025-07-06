@@ -579,14 +579,23 @@ export function useUpdateUserSettings() {
 export function useAddIncome() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (income) => {
+    mutationFn: async (income: any) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("incomes")
-        .insert({ ...income, user_id: user.id })
+        .from("credittractor_incomes")
+        .insert({
+          user_id: user.id,
+          name: income.name,
+          amount: income.amount,
+          currency: income.currency,
+          is_recurring: income.is_recurring,
+          recurrence_interval: income.recurrence_interval,
+          start_date: income.start_date,
+          end_date: income.end_date,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -595,7 +604,7 @@ export function useAddIncome() {
     onMutate: async (newIncome) => {
       await queryClient.cancelQueries({ queryKey: ["incomes"] });
       const previous = queryClient.getQueryData(["incomes"]);
-      queryClient.setQueryData(["incomes"], (old) =>
+      queryClient.setQueryData(["incomes"], (old: any) =>
         old ? [newIncome, ...old] : [newIncome]
       );
       return { previous };
@@ -612,14 +621,23 @@ export function useAddIncome() {
 export function useUpdateIncome() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (income) => {
+    mutationFn: async (income: any) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("incomes")
-        .update({ ...income })
+        .from("credittractor_incomes")
+        .update({
+          name: income.name,
+          amount: income.amount,
+          currency: income.currency,
+          is_recurring: income.is_recurring,
+          recurrence_interval: income.recurrence_interval,
+          start_date: income.start_date,
+          end_date: income.end_date,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", income.id)
         .eq("user_id", user.id)
         .select()
@@ -630,9 +648,9 @@ export function useUpdateIncome() {
     onMutate: async (updatedIncome) => {
       await queryClient.cancelQueries({ queryKey: ["incomes"] });
       const previous = queryClient.getQueryData(["incomes"]);
-      queryClient.setQueryData(["incomes"], (old) =>
+      queryClient.setQueryData(["incomes"], (old: any) =>
         old
-          ? old.map((i) => (i.id === updatedIncome.id ? updatedIncome : i))
+          ? old.map((i: any) => (i.id === updatedIncome.id ? updatedIncome : i))
           : []
       );
       return { previous };
@@ -649,7 +667,7 @@ export function useUpdateIncome() {
 export function useAddExpense() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (expense) => {
+    mutationFn: async (expense: any) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -665,7 +683,7 @@ export function useAddExpense() {
     onMutate: async (newExpense) => {
       await queryClient.cancelQueries({ queryKey: ["expenses"] });
       const previous = queryClient.getQueryData(["expenses"]);
-      queryClient.setQueryData(["expenses"], (old) =>
+      queryClient.setQueryData(["expenses"], (old: any) =>
         old ? [newExpense, ...old] : [newExpense]
       );
       return { previous };
@@ -682,7 +700,7 @@ export function useAddExpense() {
 export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (expense) => {
+    mutationFn: async (expense: any) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -700,9 +718,11 @@ export function useUpdateExpense() {
     onMutate: async (updatedExpense) => {
       await queryClient.cancelQueries({ queryKey: ["expenses"] });
       const previous = queryClient.getQueryData(["expenses"]);
-      queryClient.setQueryData(["expenses"], (old) =>
+      queryClient.setQueryData(["expenses"], (old: any) =>
         old
-          ? old.map((e) => (e.id === updatedExpense.id ? updatedExpense : e))
+          ? old.map((e: any) =>
+              e.id === updatedExpense.id ? updatedExpense : e
+            )
           : []
       );
       return { previous };
@@ -734,10 +754,10 @@ export function useIncomes() {
       }
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("incomes")
+        .from("credittractor_incomes")
         .select("*")
         .eq("user_id", user.id)
-        .order("date", { ascending: false });
+        .order("start_date", { ascending: false });
       if (error) throw error;
       return Array.isArray(data) ? data : [];
     },
@@ -773,5 +793,39 @@ export function useExpenses() {
     },
     retry: 1,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useDeleteIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (incomeId: string) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("credittractor_incomes")
+        .delete()
+        .eq("id", incomeId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onMutate: async (incomeId) => {
+      await queryClient.cancelQueries({ queryKey: ["incomes"] });
+      const previous = queryClient.getQueryData(["incomes"]);
+      queryClient.setQueryData(["incomes"], (old: any) =>
+        old ? old.filter((i: any) => i.id !== incomeId) : []
+      );
+      return { previous };
+    },
+    onError: (err, incomeId, context) => {
+      queryClient.setQueryData(["incomes"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["incomes"] });
+    },
   });
 }

@@ -60,12 +60,13 @@ export interface Income {
   user_id: string;
   name: string;
   amount: number;
-  date: string;
-  category: string;
-  account: string;
-  recurring: boolean;
-  frequency?: string | null;
-  notes?: string;
+  currency: string;
+  is_recurring: boolean;
+  recurrence_interval?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Expense {
