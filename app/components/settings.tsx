@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -31,6 +31,17 @@ import {
   useUpdateCreditCard,
   useDeleteCreditCard,
 } from "../lib/queries";
+import { UserOnboardingModal } from "./UserOnboardingModal";
+import { supabase } from "../lib/supabase";
+import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface SettingsProps {
   userSettings: UserSettings;
@@ -55,11 +66,28 @@ export function Settings({
   });
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const [addCardError, setAddCardError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const t = translations[userSettings.language];
   const updateUserSettings = useUpdateUserSettings();
   const addCreditCardMutation = useAddCreditCard();
   const updateCreditCardMutation = useUpdateCreditCard();
   const deleteCreditCardMutation = useDeleteCreditCard();
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Fetch user email on mount
+  useEffect(() => {
+    supabase.auth
+      .getUser()
+      .then(({ data }: { data: { user?: { email?: string } } }) => {
+        const user = data?.user ?? null;
+        setUserEmail(user?.email || null);
+      });
+  }, []);
 
   // Use the live credit card list if provided, otherwise fallback to userSettings.creditCards
   const cards = creditCards ?? userSettings.creditCards;
@@ -137,6 +165,45 @@ export function Settings({
       onError: () => alert("Failed to delete credit card"),
     });
   };
+
+  async function handleDeleteAccountConfirmed() {
+    if (deleteEmail !== userEmail) {
+      setDeleteError(
+        "Email does not match. Please enter your account email to confirm."
+      );
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      // Get current user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("User not found");
+      const userId = user.id;
+
+      // Call the secure API route to delete user and all data
+      const res = await fetch("/api/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to delete account.");
+
+      // Sign out and redirect
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete account.");
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteEmail("");
+    }
+  }
 
   const languages = [
     { code: "EN", name: "English" },
@@ -257,6 +324,24 @@ export function Settings({
 
   return (
     <div className="space-y-4">
+      <UserOnboardingModal
+        open={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
+        onRequestClose={() => setShowOnboarding(false)}
+      />
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() => setShowOnboarding(true)}
+        >
+          Edit Profile Info
+        </Button>
+      </div>
+      {deleteError && (
+        <div className="text-red-600 text-sm text-right mt-2">
+          {deleteError}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>{t.settings}</CardTitle>
@@ -490,6 +575,65 @@ export function Settings({
           </div>
         </CardContent>
       </Card>
+      {/* Delete Account Section at the end */}
+      <div className="mt-8">
+        <hr className="my-6" />
+        <div className="flex flex-col items-end">
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={deleting}
+          >
+            Delete Account
+          </Button>
+        </div>
+        <Dialog
+          open={showDeleteModal}
+          onOpenChange={setShowDeleteModal}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Account</DialogTitle>
+              <DialogDescription>
+                This action will permanently delete your account and all
+                associated data. This cannot be undone.
+                <br />
+                Please enter your email (
+                <span className="font-mono">{userEmail}</span>) to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 mt-4">
+              <input
+                type="email"
+                className="w-full border rounded px-3 py-2"
+                placeholder="Enter your email to confirm"
+                value={deleteEmail}
+                onChange={(e) => setDeleteEmail(e.target.value)}
+                disabled={deleting}
+              />
+              {deleteError && (
+                <div className="text-red-600 text-sm">{deleteError}</div>
+              )}
+            </div>
+            <DialogFooter className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccountConfirmed}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Confirm Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

@@ -39,12 +39,15 @@ import { LoadingScreen } from "./components/loading-screen";
 
 export default function HomePage() {
   const { data: user, isLoading } = useUser();
+  console.log(user);
   const router = useRouter();
+
   useEffect(() => {
     if (!isLoading && user) {
       router.replace("/dashboard");
     }
   }, [user, isLoading, router]);
+
   if (isLoading) return null;
   if (!user) return <LandingPage onGetStarted={() => router.push("/login")} />;
   return null;

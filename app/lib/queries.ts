@@ -15,16 +15,11 @@ export function useUser() {
   return useQuery({
     queryKey: ["user"],
     queryFn: async () => {
-      console.log("useUser queryFn called");
-
       // Check if we're using the mock Supabase client
       const isMockClient =
         !supabase.auth.getUser ||
         supabase.auth.getUser.toString().includes("Mock getUser");
       if (isMockClient) {
-        console.log(
-          "Mock Supabase client detected in useUser - returning null"
-        );
         return null;
       }
 
@@ -33,24 +28,19 @@ export function useUser() {
         error,
       } = await supabase.auth.getUser();
 
-      console.log("useUser query result:", { user: user?.email, error });
-
       // Don't throw error for missing auth session - just return null
       if (
         error &&
         (error.message.includes("Auth session missing") ||
           error.message.includes("Not authenticated"))
       ) {
-        console.log("Auth session missing - returning null");
         return null;
       }
 
       if (error) {
-        console.error("useUser error:", error);
         throw error;
       }
 
-      console.log("useUser returning user:", user?.email);
       return user;
     },
     retry: false, // Don't retry if auth fails
@@ -69,9 +59,6 @@ export function usePayments() {
         !supabase.auth.getUser ||
         supabase.auth.getUser.toString().includes("Mock getUser");
       if (isMockClient) {
-        console.log(
-          "Mock Supabase client detected in usePayments - returning empty array"
-        );
         return [];
       }
 
@@ -86,30 +73,20 @@ export function usePayments() {
         (authError.message.includes("Auth session missing") ||
           authError.message.includes("Not authenticated"))
       ) {
-        console.log("Auth session missing - returning empty payments");
         return [];
       }
 
       if (!user) throw new Error("Not authenticated");
 
-      console.log("Fetching payments for user:", user.email);
-
       const { data, error } = await supabase
-        .from("creditTractor_payments")
+        .from("credit_tractor_payments")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching payments:", error);
         throw error;
       }
-
-      console.log(
-        "Payments fetched successfully:",
-        data?.length || 0,
-        "payments"
-      );
 
       return data.map((payment: any) => ({
         id: payment.id,
@@ -142,7 +119,7 @@ export function useAddPayment() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_payments")
+        .from("credit_tractor_payments")
         .insert({
           user_id: user.id,
           name: payment.name,
@@ -200,7 +177,7 @@ export function useUpdatePayment() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_payments")
+        .from("credit_tractor_payments")
         .update({
           name: payment.name,
           price: payment.price,
@@ -257,7 +234,7 @@ export function useDeletePayment() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
-        .from("creditTractor_payments")
+        .from("credit_tractor_payments")
         .delete()
         .eq("id", paymentId)
         .eq("user_id", user.id);
@@ -301,14 +278,13 @@ export function useCreditCards() {
         (authError.message.includes("Auth session missing") ||
           authError.message.includes("Not authenticated"))
       ) {
-        console.log("Auth session missing - returning empty credit cards");
         return [];
       }
 
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_credit_cards")
+        .from("credit_tractor_credit_cards")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -337,7 +313,7 @@ export function useAddCreditCard() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_credit_cards")
+        .from("credit_tractor_credit_cards")
         .insert({
           user_id: user.id,
           name: card.name,
@@ -349,10 +325,8 @@ export function useAddCreditCard() {
         .single();
 
       if (error) {
-        console.error("Supabase insert error (credit card):", error);
         throw error;
       }
-      console.log("Supabase insert success (credit card):", data);
       return data;
     },
     onMutate: async (newCard) => {
@@ -373,12 +347,9 @@ export function useAddCreditCard() {
       return { previousCards };
     },
     onError: (err, newCard, context) => {
-      console.error("Mutation error (credit card):", err);
       queryClient.setQueryData(["credit-cards"], context?.previousCards);
     },
-    onSuccess: (data) => {
-      console.log("Mutation success (credit card):", data);
-    },
+    onSuccess: (data) => {},
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
     },
@@ -396,7 +367,7 @@ export function useUpdateCreditCard() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_credit_cards")
+        .from("credit_tractor_credit_cards")
         .update({
           name: card.name,
           last_four: card.lastFour,
@@ -442,7 +413,7 @@ export function useDeleteCreditCard() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
-        .from("creditTractor_credit_cards")
+        .from("credit_tractor_credit_cards")
         .delete()
         .eq("id", cardId)
         .eq("user_id", user.id);
@@ -484,7 +455,6 @@ export function useUserSettings() {
         (authError.message.includes("Auth session missing") ||
           authError.message.includes("Not authenticated"))
       ) {
-        console.log("Auth session missing - returning default settings");
         return {
           language: "EN" as const,
           currency: "EUR",
@@ -496,7 +466,7 @@ export function useUserSettings() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_user_settings")
+        .from("credit_tractor_user_settings")
         .select("*")
         .eq("user_id", user.id)
         .single();
@@ -535,7 +505,7 @@ export function useUpdateUserSettings() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("creditTractor_user_settings")
+        .from("credit_tractor_user_settings")
         .upsert(
           {
             user_id: user.id,
@@ -585,7 +555,7 @@ export function useAddIncome() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_incomes")
+        .from("credit_tractor_incomes")
         .insert({
           user_id: user.id,
           name: income.name,
@@ -627,7 +597,7 @@ export function useUpdateIncome() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_incomes")
+        .from("credit_tractor_incomes")
         .update({
           name: income.name,
           amount: income.amount,
@@ -673,7 +643,7 @@ export function useAddExpense() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_expenses")
+        .from("credit_tractor_expenses")
         .insert({
           user_id: user.id,
           name: expense.name,
@@ -716,7 +686,7 @@ export function useUpdateExpense() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_expenses")
+        .from("credit_tractor_expenses")
         .update({
           name: expense.name,
           amount: expense.amount,
@@ -766,7 +736,7 @@ export function useDeleteExpense() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
-        .from("credittractor_expenses")
+        .from("credit_tractor_expenses")
         .delete()
         .eq("id", expenseId)
         .eq("user_id", user.id);
@@ -808,7 +778,7 @@ export function useIncomes() {
       }
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_incomes")
+        .from("credit_tractor_incomes")
         .select("*")
         .eq("user_id", user.id)
         .order("start_date", { ascending: false });
@@ -838,11 +808,11 @@ export function useExpenses() {
       }
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("credittractor_expenses")
+        .from("credit_tractor_expenses")
         .select(
           `
           *,
-          category:credittractor_expense_categories(
+          category:credit_tractor_expense_categories(
             id,
             name,
             icon,
@@ -870,7 +840,7 @@ export function useDeleteIncome() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
-        .from("credittractor_incomes")
+        .from("credit_tractor_incomes")
         .delete()
         .eq("id", incomeId)
         .eq("user_id", user.id);
@@ -915,7 +885,7 @@ export function useExpenseCategories() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("credittractor_expense_categories")
+        .from("credit_tractor_expense_categories")
         .select("*")
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .order("name", { ascending: true });
@@ -938,7 +908,7 @@ export function useAddExpenseCategory() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("credittractor_expense_categories")
+        .from("credit_tractor_expense_categories")
         .insert({
           user_id: user.id,
           name: category.name,
@@ -979,7 +949,7 @@ export function useUpdateExpenseCategory() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("credittractor_expense_categories")
+        .from("credit_tractor_expense_categories")
         .update({
           name: category.name,
           icon: category.icon,
@@ -1026,7 +996,7 @@ export function useDeleteExpenseCategory() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
-        .from("credittractor_expense_categories")
+        .from("credit_tractor_expense_categories")
         .delete()
         .eq("id", categoryId)
         .eq("user_id", user.id);

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PaymentDashboard } from "../components/payment-dashboard";
 import {
   usePayments,
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   const { data: userSettings } = useUserSettings();
   const updatePaymentMutation = useUpdatePayment();
+  const router = useRouter();
 
   const currentUserSettings: UserSettings = {
     language: userSettings?.language || "EN",
@@ -33,6 +35,14 @@ export default function DashboardPage() {
         subMessage="Loading payments..."
       />
     );
+  }
+
+  // Redirect to home if not authenticated
+  if (!user) {
+    if (typeof window !== "undefined") {
+      router.replace("/");
+    }
+    return <LoadingScreen message="Redirecting..." />;
   }
 
   const markPaymentAsPaid = async (

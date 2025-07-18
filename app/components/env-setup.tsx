@@ -224,14 +224,16 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`;
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
                 Your database should have these tables with the{" "}
-                <code className="bg-gray-100 px-1 rounded">creditTractor_</code>{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  credit_tractor_
+                </code>{" "}
                 prefix:
               </p>
 
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="bg-green-50 p-3 rounded-lg">
                   <h4 className="font-medium text-green-800">
-                    creditTractor_payments
+                    credit_tractor_payments
                   </h4>
                   <p className="text-sm text-green-600">
                     Payment plans and installments
@@ -239,7 +241,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`;
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg">
                   <h4 className="font-medium text-green-800">
-                    creditTractor_credit_cards
+                    credit_tractor_credit_cards
                   </h4>
                   <p className="text-sm text-green-600">
                     Credit card information
@@ -247,7 +249,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`;
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg">
                   <h4 className="font-medium text-green-800">
-                    creditTractor_user_settings
+                    credit_tractor_user_settings
                   </h4>
                   <p className="text-sm text-green-600">User preferences</p>
                 </div>

@@ -101,7 +101,7 @@ export { supabase };
 export type Database = {
   public: {
     Tables: {
-      creditTractor_payments: {
+      credit_tractor_payments: {
         Row: {
           id: string;
           user_id: string;
@@ -154,7 +154,7 @@ export type Database = {
           updated_at?: string;
         };
       };
-      creditTractor_credit_cards: {
+      credit_tractor_credit_cards: {
         Row: {
           id: string;
           user_id: string;
@@ -186,7 +186,7 @@ export type Database = {
           updated_at?: string;
         };
       };
-      creditTractor_user_settings: {
+      credit_tractor_user_settings: {
         Row: {
           id: string;
           user_id: string;
@@ -220,7 +220,7 @@ export type Database = {
       };
     };
     Views: {
-      creditTractor_payment_stats: {
+      credit_tractor_payment_stats: {
         Row: {
           user_id: string;
           total_payments: number;

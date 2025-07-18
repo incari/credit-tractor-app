@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useUser, useUserSettings } from "../lib/queries";
 import { useRouter, usePathname } from "next/navigation";
@@ -7,6 +7,8 @@ import Navbar from "@/components/landing/Navbar";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Plus } from "lucide-react";
 import { translations } from "../utils/translations";
+import { UserOnboardingModal } from "./UserOnboardingModal";
+import { Button } from "../../components/ui/button";
 
 export default function ClientNavShell({
   children,
@@ -19,13 +21,33 @@ export default function ClientNavShell({
   const pathname = usePathname();
   const lang = (userSettings?.language as keyof typeof translations) || "EN";
   const t = translations[lang];
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  /* 
+  useEffect(() => {
+    if (
+      user &&
+      userSettings &&
+      (!userSettings.language || !userSettings.currency)
+    ) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [user, userSettings]);
+ */
   useEffect(() => {
     if (!isLoading && user && pathname === "/") {
       router.replace("/dashboard");
     }
   }, [user, isLoading, pathname, router]);
+
   return (
     <>
+      <UserOnboardingModal
+        open={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
+      />
       <Navbar />
       <div className="bg-gradient-to-br from-green-50 to-white pt-16 md:pt-20">
         {user ? (
@@ -96,9 +118,20 @@ export default function ClientNavShell({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Link
+              href="/payments?add=1"
+              className="ml-2"
+            >
+              <Button
+                className="flex items-center gap-2"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" /> {t.addPayment}
+              </Button>
+            </Link>
           </div>
         ) : null}
-        <div className="container mx-auto p-4 space-y-6">{children}</div>
+        <div className="max-w-4xl mx-auto px-2 md:px-0">{children}</div>
       </div>
     </>
   );

@@ -40,7 +40,7 @@ export function AuthForm() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -48,7 +48,25 @@ export function AuthForm() {
           },
         });
 
-        if (error) throw error;
+        if (signUpError) throw signUpError;
+
+        // Try to log in immediately after sign up
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (!signInError) {
+          // Optimistically set user in cache and redirect
+          const {
+            data: { user: loggedInUser },
+          } = await supabase.auth.getUser();
+          queryClient.setQueryData(["user"], loggedInUser);
+          router.push("/");
+          return;
+        }
+
+        // If login fails (likely due to unconfirmed email), show confirmation message
         setMessage({
           type: "success",
           text: "Check your email for the confirmation link!",
